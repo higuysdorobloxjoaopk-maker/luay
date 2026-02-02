@@ -1,20 +1,42 @@
 local luayV2 = {}
+local HttpService = game:GetService("HttpService")
+local players = game:GetService("Players")
+local plr = players.LocalPlayer
 
 function luayV2:Window(config)
     local title = config.Name or "luayV2"
     local mainColor = config.Color or Color3.fromRGB(0, 170, 255)
     local footerText = config.Footer or "luayV2 | Community"
+    local fileName = "luayV2_Config_" .. plr.UserId .. ".json"
     
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     
+    local SaveData = {}
+    local canAutoSave = true
+    
+    local function SaveToFile()
+        if not canAutoSave then return end
+        local success, json = pcall(function() return HttpService:JSONEncode(SaveData) end)
+        if success and writefile then writefile(fileName, json) end
+    end
+
+    local function LoadFromFile()
+        if isfile and isfile(fileName) then
+            local success, content = pcall(function() return readfile(fileName) end)
+            if success then return HttpService:JSONDecode(content) end
+        end
+        return {}
+    end
+
+    local Configs = LoadFromFile()
+
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "luayV2_UI"
     if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = game:GetService("CoreGui") end
 
-    -- Estrutura Principal (Altura Limitada)
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 260, 0, 350) -- Altura Fixa Máxima
+    MainFrame.Size = UDim2.new(0, 260, 0, 350)
     MainFrame.Position = UDim2.new(0.5, -130, 0.5, -175)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     MainFrame.BorderSizePixel = 0
@@ -23,7 +45,6 @@ function luayV2:Window(config)
     MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
 
-    -- TopBar
     local TopBar = Instance.new("Frame")
     TopBar.Size = UDim2.new(1, 0, 0, 35)
     TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
@@ -48,7 +69,6 @@ function luayV2:Window(config)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = TopBar
 
-    -- Botões de Controle
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 30, 1, 0)
     CloseBtn.Position = UDim2.new(1, -30, 0, 0)
@@ -70,7 +90,6 @@ function luayV2:Window(config)
     MiniBtn.TextSize = 18
     MiniBtn.Parent = TopBar
 
-    -- Container de Itens com Scroll Automático
     local Content = Instance.new("ScrollingFrame")
     Content.Size = UDim2.new(1, 0, 1, -55)
     Content.Position = UDim2.new(0, 0, 0, 35)
@@ -78,7 +97,6 @@ function luayV2:Window(config)
     Content.BorderSizePixel = 0
     Content.ScrollBarThickness = 2
     Content.ScrollBarImageColor3 = mainColor
-    Content.CanvasSize = UDim2.new(0, 0, 0, 0) -- Ajustado pelo UIListLayout
     Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Content.Parent = MainFrame
     
@@ -103,7 +121,6 @@ function luayV2:Window(config)
     Footer.BorderSizePixel = 0
     Footer.Parent = MainFrame
 
-    -- Lógica de Minimizar
     local isMinimized = false
     MiniBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
@@ -114,6 +131,15 @@ function luayV2:Window(config)
     end)
 
     local Lib = {}
+
+    function Lib:SetAutoSave(state)
+        canAutoSave = state
+    end
+
+    function Lib:ForceSave()
+        local success, json = pcall(function() return HttpService:JSONEncode(SaveData) end)
+        if success and writefile then writefile(fileName, json) end
+    end
 
     function Lib:Button(text, callback)
         local btn = Instance.new("TextButton")
@@ -129,30 +155,36 @@ function luayV2:Window(config)
     end
 
     function Lib:Toggle(text, callback)
-        local state = false
+        local state = Configs[text] or false
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0.94, 0, 0, 32)
         btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.Text = string.format("[ %s [ ] ]", text)
-        btn.TextColor3 = Color3.fromRGB(150, 150, 150)
         btn.Font = Enum.Font.Code
         btn.TextSize = 12
         btn.BorderSizePixel = 0
         btn.Parent = Content
-
-        btn.MouseButton1Click:Connect(function()
-            state = not state
+        local function update()
             btn.Text = state and string.format("[ %s [✓] ]", text) or string.format("[ %s [ ] ]", text)
             btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+        end
+        update()
+        if state then task.spawn(function() callback(state) end) end
+        btn.MouseButton1Click:Connect(function()
+            state = not state
+            update()
+            SaveData[text] = state
+            SaveToFile()
             callback(state)
         end)
+        SaveData[text] = state
     end
 
     function Lib:Box(placeholder, callback)
+        local saved = Configs[placeholder] or ""
         local box = Instance.new("TextBox")
         box.Size = UDim2.new(0.94, 0, 0, 32)
         box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        box.Text = ""
+        box.Text = saved
         box.PlaceholderText = "[ > " .. placeholder .. "... ]"
         box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
         box.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -160,16 +192,21 @@ function luayV2:Window(config)
         box.TextSize = 12
         box.BorderSizePixel = 0
         box.Parent = Content
-        box.FocusLost:Connect(function() callback(box.Text) end)
+        if saved ~= "" then task.spawn(function() callback(saved) end) end
+        box.FocusLost:Connect(function() 
+            SaveData[placeholder] = box.Text
+            SaveToFile()
+            callback(box.Text) 
+        end)
     end
 
     function Lib:Slider(text, min, max, default, callback)
+        local saved = Configs[text] or default
         local sliderFrame = Instance.new("Frame")
         sliderFrame.Size = UDim2.new(0.94, 0, 0, 45)
         sliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         sliderFrame.BorderSizePixel = 0
         sliderFrame.Parent = Content
-
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 0, 20)
         label.Position = UDim2.new(0, 5, 0, 2)
@@ -180,27 +217,23 @@ function luayV2:Window(config)
         label.TextSize = 10
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = sliderFrame
-
         local barObj = Instance.new("Frame")
         barObj.Size = UDim2.new(0.65, 0, 0, 4)
         barObj.Position = UDim2.new(0.05, 0, 0.7, 0)
         barObj.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         barObj.BorderSizePixel = 0
         barObj.Parent = sliderFrame
-
         local fill = Instance.new("Frame")
-        fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+        fill.Size = UDim2.new((saved - min)/(max - min), 0, 1, 0)
         fill.BackgroundColor3 = mainColor
         fill.BorderSizePixel = 0
         fill.Parent = barObj
-
         local knob = Instance.new("Frame")
         knob.Size = UDim2.new(0, 10, 0, 10)
         knob.Position = UDim2.new(1, -5, 0.5, -5)
         knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         knob.Parent = fill
         Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-
         local percentLabel = Instance.new("TextLabel")
         percentLabel.Size = UDim2.new(0.25, 0, 0, 20)
         percentLabel.Position = UDim2.new(0.72, 0, 0.55, 0)
@@ -208,41 +241,32 @@ function luayV2:Window(config)
         percentLabel.TextColor3 = mainColor
         percentLabel.Font = Enum.Font.Code
         percentLabel.TextSize = 11
-        percentLabel.Text = string.format("[%d%%]", ((default - min)/(max-min))*100)
+        percentLabel.Text = string.format("[%d%%]", ((saved - min)/(max-min))*100)
         percentLabel.Parent = sliderFrame
-
         local function update(input)
-            local inputPos = input.Position.X
-            local barPos = barObj.AbsolutePosition.X
-            local barSize = barObj.AbsoluteSize.X
-            local ratio = math.clamp((inputPos - barPos) / barSize, 0, 1)
-            
+            local ratio = math.clamp((input.Position.X - barObj.AbsolutePosition.X) / barObj.AbsoluteSize.X, 0, 1)
             fill.Size = UDim2.new(ratio, 0, 1, 0)
             percentLabel.Text = string.format("[%d%%]", ratio * 100)
             local value = math.floor(min + (max - min) * ratio)
+            SaveData[text] = value
+            SaveToFile()
             callback(value)
         end
-
+        task.spawn(function() callback(saved) end)
         local isDragging = false
-        -- Ativação para PC e Mobile
         sliderFrame.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 isDragging = true
                 update(input)
             end
         end)
-
         UserInputService.InputChanged:Connect(function(input)
             if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 update(input)
             end
         end)
-
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                isDragging = false
-            end
-        end)
+        UserInputService.InputEnded:Connect(function() isDragging = false end)
+        SaveData[text] = saved
     end
 
     function Lib:Dropdown(text, list, callback)
@@ -253,7 +277,6 @@ function luayV2:Window(config)
         dropFrame.ClipsDescendants = true
         dropFrame.BorderSizePixel = 0
         dropFrame.Parent = Content
-
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, 0, 0, 32)
         btn.BackgroundTransparency = 1
@@ -263,13 +286,11 @@ function luayV2:Window(config)
         btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
         btn.Parent = dropFrame
-
         local itemContainer = Instance.new("Frame")
         itemContainer.Size = UDim2.new(1, 0, 0, #list * 30)
         itemContainer.Position = UDim2.new(0, 0, 0, 32)
         itemContainer.BackgroundTransparency = 1
         itemContainer.Parent = dropFrame
-
         for i, item in pairs(list) do
             local itemBtn = Instance.new("TextButton")
             itemBtn.Size = UDim2.new(1, 0, 0, 30)
@@ -288,7 +309,6 @@ function luayV2:Window(config)
                 dropFrame:TweenSize(UDim2.new(0.94, 0, 0, 32), "Out", "Quart", 0.3, true)
             end)
         end
-
         btn.MouseButton1Click:Connect(function()
             open = not open
             btn.Text = open and string.format("  [ %s ^ ]", text) or string.format("  [ %s > ]", text)
