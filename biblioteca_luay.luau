@@ -12,14 +12,15 @@ function luayV2:Window(config)
     ScreenGui.Name = "luayV2_UI"
     if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = game:GetService("CoreGui") end
 
-    -- Estrutura Principal
+    -- Estrutura Principal (Altura Limitada)
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 260, 0, 380)
-    MainFrame.Position = UDim2.new(0.5, -130, 0.5, -190)
+    MainFrame.Size = UDim2.new(0, 260, 0, 350) -- Altura Fixa Máxima
+    MainFrame.Position = UDim2.new(0.5, -130, 0.5, -175)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.Draggable = true
+    MainFrame.ClipsDescendants = true
     MainFrame.Parent = ScreenGui
 
     -- TopBar
@@ -37,7 +38,7 @@ function luayV2:Window(config)
     NeonLine.Parent = TopBar
 
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -60, 1, 0)
+    TitleLabel.Size = UDim2.new(1, -80, 1, 0)
     TitleLabel.Position = UDim2.new(0, 12, 0, 0)
     TitleLabel.Text = title:upper()
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -47,17 +48,29 @@ function luayV2:Window(config)
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     TitleLabel.Parent = TopBar
 
-    -- Controle: Fechar e Minimizar
+    -- Botões de Controle
     local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Size = UDim2.new(0, 35, 1, 0)
-    CloseBtn.Position = UDim2.new(1, -35, 0, 0)
-    CloseBtn.Text = "✕"
+    CloseBtn.Size = UDim2.new(0, 30, 1, 0)
+    CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+    CloseBtn.Text = "x"
     CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
     CloseBtn.BackgroundTransparency = 1
-    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Font = Enum.Font.Gotham
+    CloseBtn.TextSize = 18
     CloseBtn.Parent = TopBar
     CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
+    local MiniBtn = Instance.new("TextButton")
+    MiniBtn.Size = UDim2.new(0, 30, 1, 0)
+    MiniBtn.Position = UDim2.new(1, -60, 0, 0)
+    MiniBtn.Text = "_"
+    MiniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MiniBtn.BackgroundTransparency = 1
+    MiniBtn.Font = Enum.Font.Gotham
+    MiniBtn.TextSize = 18
+    MiniBtn.Parent = TopBar
+
+    -- Container de Itens com Scroll Automático
     local Content = Instance.new("ScrollingFrame")
     Content.Size = UDim2.new(1, 0, 1, -55)
     Content.Position = UDim2.new(0, 0, 0, 35)
@@ -65,6 +78,8 @@ function luayV2:Window(config)
     Content.BorderSizePixel = 0
     Content.ScrollBarThickness = 2
     Content.ScrollBarImageColor3 = mainColor
+    Content.CanvasSize = UDim2.new(0, 0, 0, 0) -- Ajustado pelo UIListLayout
+    Content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     Content.Parent = MainFrame
     
     local Layout = Instance.new("UIListLayout")
@@ -88,6 +103,16 @@ function luayV2:Window(config)
     Footer.BorderSizePixel = 0
     Footer.Parent = MainFrame
 
+    -- Lógica de Minimizar
+    local isMinimized = false
+    MiniBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        Content.Visible = not isMinimized
+        Footer.Visible = not isMinimized
+        local targetSize = isMinimized and UDim2.new(0, 260, 0, 35) or UDim2.new(0, 260, 0, 350)
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+    end)
+
     local Lib = {}
 
     function Lib:Button(text, callback)
@@ -101,12 +126,6 @@ function luayV2:Window(config)
         btn.BorderSizePixel = 0
         btn.Parent = Content
         btn.MouseButton1Click:Connect(callback)
-        
-        local line = Instance.new("Frame")
-        line.Size = UDim2.new(0, 2, 1, 0)
-        line.BackgroundColor3 = mainColor
-        line.BorderSizePixel = 0
-        line.Parent = btn
     end
 
     function Lib:Toggle(text, callback)
@@ -121,17 +140,10 @@ function luayV2:Window(config)
         btn.BorderSizePixel = 0
         btn.Parent = Content
 
-        local line = Instance.new("Frame")
-        line.Size = UDim2.new(0, 2, 1, 0)
-        line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        line.BorderSizePixel = 0
-        line.Parent = btn
-
         btn.MouseButton1Click:Connect(function()
             state = not state
             btn.Text = state and string.format("[ %s [✓] ]", text) or string.format("[ %s [ ] ]", text)
             btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
-            line.BackgroundColor3 = state and mainColor or Color3.fromRGB(50, 50, 50)
             callback(state)
         end)
     end
@@ -141,7 +153,7 @@ function luayV2:Window(config)
         box.Size = UDim2.new(0.94, 0, 0, 32)
         box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         box.Text = ""
-        box.PlaceholderText = "> " .. placeholder .. "..."
+        box.PlaceholderText = "[ > " .. placeholder .. "... ]"
         box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
         box.TextColor3 = Color3.fromRGB(255, 255, 255)
         box.Font = Enum.Font.Code
@@ -161,7 +173,7 @@ function luayV2:Window(config)
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 0, 20)
         label.Position = UDim2.new(0, 5, 0, 2)
-        label.Text = text:upper()
+        label.Text = string.format("[ %s ]", text:upper())
         label.TextColor3 = Color3.fromRGB(180, 180, 180)
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.Code
@@ -196,26 +208,40 @@ function luayV2:Window(config)
         percentLabel.TextColor3 = mainColor
         percentLabel.Font = Enum.Font.Code
         percentLabel.TextSize = 11
-        percentLabel.Text = "[" .. math.floor(((default - min)/(max-min))*100) .. "%]"
+        percentLabel.Text = string.format("[%d%%]", ((default - min)/(max-min))*100)
         percentLabel.Parent = sliderFrame
 
         local function update(input)
-            local pos = math.clamp((input.Position.X - barObj.AbsolutePosition.X) / barObj.AbsoluteSize.X, 0, 1)
-            fill.Size = UDim2.new(pos, 0, 1, 0)
-            percentLabel.Text = "[" .. math.floor(pos * 100) .. "%]"
-            local value = math.floor(min + (max - min) * pos)
+            local inputPos = input.Position.X
+            local barPos = barObj.AbsolutePosition.X
+            local barSize = barObj.AbsoluteSize.X
+            local ratio = math.clamp((inputPos - barPos) / barSize, 0, 1)
+            
+            fill.Size = UDim2.new(ratio, 0, 1, 0)
+            percentLabel.Text = string.format("[%d%%]", ratio * 100)
+            local value = math.floor(min + (max - min) * ratio)
             callback(value)
         end
 
-        local drag = false
+        local isDragging = false
+        -- Ativação para PC e Mobile
         sliderFrame.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = true update(input) end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = true
+                update(input)
+            end
         end)
+
         UserInputService.InputChanged:Connect(function(input)
-            if drag and input.UserInputType == Enum.UserInputType.MouseMovement then update(input) end
+            if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                update(input)
+            end
         end)
+
         UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                isDragging = false
+            end
         end)
     end
 
