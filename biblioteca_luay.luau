@@ -53,7 +53,7 @@ function luayV2:Window(config)
     TopBar.Parent = MainFrame
 
     local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -70, 0, 25)
+    TitleLabel.Size = UDim2.new(1, -80, 0, 25)
     TitleLabel.Position = UDim2.new(0, 12, 0, 2)
     TitleLabel.Text = title:upper()
     TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -64,7 +64,7 @@ function luayV2:Window(config)
     TitleLabel.Parent = TopBar
 
     local SubtitleLabel = Instance.new("TextLabel")
-    SubtitleLabel.Size = UDim2.new(1, -70, 0, 15)
+    SubtitleLabel.Size = UDim2.new(1, -80, 0, 15)
     SubtitleLabel.Position = UDim2.new(0, 12, 0, 22)
     SubtitleLabel.Text = "PRINCIPAL"
     SubtitleLabel.TextColor3 = mainColor
@@ -73,6 +73,35 @@ function luayV2:Window(config)
     SubtitleLabel.TextSize = 11
     SubtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     SubtitleLabel.Parent = TopBar
+
+    -- Botões de Controle
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+    CloseBtn.Position = UDim2.new(1, -35, 0, 0)
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.Font = Enum.Font.Gotham
+    CloseBtn.TextSize = 22
+    CloseBtn.Parent = TopBar
+    CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+    local MiniBtn = Instance.new("TextButton")
+    MiniBtn.Size = UDim2.new(0, 35, 0, 35)
+    MiniBtn.Position = UDim2.new(1, -70, 0, 0)
+    MiniBtn.Text = "_"
+    MiniBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MiniBtn.BackgroundTransparency = 1
+    MiniBtn.Font = Enum.Font.Gotham
+    MiniBtn.TextSize = 20
+    MiniBtn.Parent = TopBar
+
+    local isMinimized = false
+    MiniBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        local targetSize = isMinimized and UDim2.new(0, 280, 0, 45) or UDim2.new(0, 280, 0, 380)
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+    end)
 
     local Sidebar = Instance.new("ScrollingFrame")
     Sidebar.Size = UDim2.new(0, 45, 1, -65)
@@ -132,13 +161,14 @@ function luayV2:Window(config)
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(0.95, 0, 0, 32)
             btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            btn.Text = "[ " .. text .. " • ]"
+            btn.Text = text .. " •"
             btn.TextColor3 = Color3.fromRGB(230, 230, 230)
             btn.Font = Enum.Font.Code
             btn.TextSize = 12
             btn.BorderSizePixel = 0
             btn.Parent = AreaFrame
             btn.MouseButton1Click:Connect(callback)
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         end
 
         function Elements:Toggle(text, callback)
@@ -150,9 +180,10 @@ function luayV2:Window(config)
             btn.TextSize = 12
             btn.BorderSizePixel = 0
             btn.Parent = AreaFrame
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
             local function update()
-                btn.Text = state and "[ " .. text .. " [✓] ]" or "[ " .. text .. " [ ] ]"
+                btn.Text = state and text .. " ✓" or text .. " ○"
                 btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
             end
             update()
@@ -174,11 +205,12 @@ function luayV2:Window(config)
             sFrame.Size = UDim2.new(0.95, 0, 0, 45)
             sFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             sFrame.Parent = AreaFrame
+            Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 4)
 
             local lab = Instance.new("TextLabel")
             lab.Size = UDim2.new(1, 0, 0, 20)
             lab.Position = UDim2.new(0, 8, 0, 2)
-            lab.Text = "[ " .. text:upper() .. " ]"
+            lab.Text = text:upper()
             lab.TextColor3 = Color3.fromRGB(180, 180, 180)
             lab.BackgroundTransparency = 1
             lab.Font = Enum.Font.Code
@@ -222,6 +254,28 @@ function luayV2:Window(config)
             UserInputService.InputChanged:Connect(function(i) if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then up(i) end end)
             UserInputService.InputEnded:Connect(function(i) drag = false end)
             task.spawn(function() callback(saved) end)
+        end
+
+        function Elements:Box(placeholder, callback)
+            local saved = Configs[placeholder] or ""
+            local box = Instance.new("TextBox")
+            box.Size = UDim2.new(0.95, 0, 0, 32)
+            box.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            box.Text = saved
+            box.PlaceholderText = "> " .. placeholder .. "..."
+            box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+            box.TextColor3 = Color3.fromRGB(255, 255, 255)
+            box.Font = Enum.Font.Code
+            box.TextSize = 12
+            box.BorderSizePixel = 0
+            box.Parent = AreaFrame
+            Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
+            if saved ~= "" then task.spawn(function() callback(saved) end) end
+            box.FocusLost:Connect(function() 
+                SaveData[placeholder] = box.Text
+                if internalAutoSave then SaveToFile() end
+                callback(box.Text) 
+            end)
         end
 
         return Elements
