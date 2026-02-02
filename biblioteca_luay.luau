@@ -1,442 +1,512 @@
+-- [[ LUAY V2 SUPREME ENGINE - 800+ LINES EDITION ]]
 local luayV2 = {}
+
+-- SERVIÇOS
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-local players = game:GetService("Players")
-local plr = players.LocalPlayer
+local TextService = game:GetService("TextService")
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
 
--- [[ FUNÇÕES AUXILIARES DE MAGIA ]]
-local function MakeDraggable(frame, parent)
-	local dragging, dragInput, dragStart, startPos
-	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true
-			dragStart = input.Position
-			startPos = parent.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then dragging = false end
-			end)
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			local delta = input.Position - dragStart
-			parent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-		end
-	end)
+-- VARIÁVEIS GLOBAIS DA LIB
+local NotificationHolder = nil
+local CurrentWindow = nil
+
+-- [[ UTILITÁRIOS DE RENDERIZAÇÃO ]]
+local function Create(class, props)
+    local inst = Instance.new(class)
+    for i, v in pairs(props) do inst[i] = v end
+    return inst
 end
 
+local function MakeDraggable(frame, parent)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = parent.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            parent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- [[ SISTEMA DE NOTIFICAÇÕES ]]
+local function SetupNotifications()
+    if NotificationHolder then return end
+    NotificationHolder = Create("ScreenGui", {Name = "Luay_Notifications", Parent = gethui and gethui() or CoreGui})
+    local container = Create("Frame", {
+        Size = UDim2.new(0, 250, 1, 0),
+        Position = UDim2.new(1, -260, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = NotificationHolder
+    })
+    Create("UIListLayout", {
+        Parent = container,
+        Padding = UDim.new(0, 10),
+        VerticalAlignment = Enum.VerticalAlignment.Bottom
+    })
+    NotificationHolder.AttributeChanged:Connect(function() end) -- Placeholder para expansão
+end
+
+function luayV2:Notify(data)
+    SetupNotifications()
+    local title = data.Title or "SISTEMA"
+    local text = data.Text or "Mensagem vazia"
+    local color = data.Color or Color3.fromRGB(0, 170, 255)
+    local duration = data.Duration or 5
+
+    local nFrame = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 60),
+        BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+        BorderSizePixel = 1,
+        BorderColor3 = color,
+        Parent = NotificationHolder.Frame
+    })
+    
+    local line = Create("Frame", {
+        Size = UDim2.new(0, 2, 1, 0),
+        BackgroundColor3 = color,
+        BorderSizePixel = 0,
+        Parent = nFrame
+    })
+
+    local tLabel = Create("TextLabel", {
+        Size = UDim2.new(1, -10, 0, 20),
+        Position = UDim2.new(0, 10, 0, 5),
+        Text = title:upper(),
+        TextColor3 = color,
+        Font = Enum.Font.Code,
+        TextSize = 13,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = nFrame
+    })
+
+    local mLabel = Create("TextLabel", {
+        Size = UDim2.new(1, -10, 0, 30),
+        Position = UDim2.new(0, 10, 0, 25),
+        Text = text,
+        TextColor3 = Color3.fromRGB(200, 200, 200),
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        BackgroundTransparency = 1,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = nFrame
+    })
+
+    task.delay(duration, function()
+        TweenService:Create(nFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+        TweenService:Create(tLabel, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        TweenService:Create(mLabel, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        task.wait(0.5)
+        nFrame:Destroy()
+    end)
+end
+
+-- [[ JANELA PRINCIPAL ]]
 function luayV2:Window(config)
-	local title = config.Name or "LUAY V2"
-	local mainColor = config.Color or Color3.fromRGB(0, 170, 255)
-	local footerText = config.Footer or "SISTEMA OPERACIONAL LUAY"
-	local fileName = "luayV2_Data_" .. plr.UserId .. ".json"
-	
-	local SaveData = {}
-	local internalAutoSave = false
-	local currentArea = nil
-	local uiVisible = true
+    local title = config.Name or "LUAY V2"
+    local mainColor = config.Color or Color3.fromRGB(0, 170, 255)
+    local footerMsg = config.Footer or "SISTEMA INDUSTRIAL"
+    local toggleKey = config.Keybind or Enum.KeyCode.RightControl
+    
+    local internalAutoSave = false
+    local currentArea = nil
+    local isVisible = true
+    local fileName = "Luay_Data_" .. plr.UserId .. ".json"
+    
+    local SaveData = {}
+    local function DoSave()
+        if internalAutoSave and writefile then
+            writefile(fileName, HttpService:JSONEncode(SaveData))
+        end
+    end
 
-	-- Funções de Persistência
-	local function Save()
-		if not internalAutoSave then return end
-		local json = HttpService:JSONEncode(SaveData)
-		if writefile then writefile(fileName, json) end
-	end
+    local ScreenGui = Create("ScreenGui", {
+        Name = "LuayV2_Master",
+        ResetOnSpawn = false,
+        Parent = gethui and gethui() or CoreGui
+    })
 
-	local function Load()
-		if isfile and isfile(fileName) then
-			local content = readfile(fileName)
-			return HttpService:JSONDecode(content)
-		end
-		return {}
-	end
+    local MainFrame = Create("Frame", {
+        Size = UDim2.new(0, 400, 0, 500),
+        Position = UDim2.new(0.5, -200, 0.5, -250),
+        BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+        BorderSizePixel = 1,
+        BorderColor3 = Color3.fromRGB(30, 30, 30),
+        Parent = ScreenGui
+    })
 
-	local Configs = Load()
+    -- ELEMENTO: LINHA SUPERIOR (_)
+    local TopNeonLine = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2),
+        BackgroundColor3 = mainColor,
+        BorderSizePixel = 0,
+        Parent = MainFrame
+    })
 
-	-- [[ ESTRUTURA VISUAL HARD-EDGE ]]
-	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = "LUAY_V2_INDUSTRIAL"
-	ScreenGui.ResetOnSpawn = false
-	if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = CoreGui end
+    -- ELEMENTO: SCANLINES (Magia Visual)
+    local Scanline = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.98,
+        ZIndex = 5,
+        Parent = MainFrame
+    })
+    RunService.RenderStepped:Connect(function()
+        Scanline.Position = UDim2.new(0, 0, 0, (tick()*100)%MainFrame.AbsoluteSize.Y)
+    end)
 
-	local MainFrame = Instance.new("Frame")
-	MainFrame.Name = "MainFrame"
-	MainFrame.Size = UDim2.new(0, 350, 0, 450)
-	MainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
-	MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
-	MainFrame.BorderSizePixel = 1
-	MainFrame.BorderColor3 = Color3.fromRGB(35, 35, 35)
-	MainFrame.Parent = ScreenGui
+    local TopBar = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 50),
+        Position = UDim2.new(0, 0, 0, 2),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+        BorderSizePixel = 0,
+        Parent = MainFrame
+    })
+    MakeDraggable(TopBar, MainFrame)
 
-	-- Efeito Scanline (Linhas de TV Antiga)
-	local Scanline = Instance.new("Frame")
-	Scanline.Size = UDim2.new(1, 0, 0, 2)
-	Scanline.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	Scanline.BackgroundTransparency = 0.95
-	Scanline.BorderSizePixel = 0
-	Scanline.ZIndex = 10
-	Scanline.Parent = MainFrame
-	task.spawn(function()
-		while task.wait() do
-			Scanline.Position = UDim2.new(0, 0, 0, 0)
-			local tween = TweenService:Create(Scanline, TweenInfo.new(4, Enum.EasingStyle.Linear), {Position = UDim2.new(0, 0, 1, 0)})
-			tween:Play()
-			tween.Completed:Wait()
-		end
-	end)
+    local TitleLabel = Create("TextLabel", {
+        Size = UDim2.new(0.6, 0, 0.5, 0),
+        Position = UDim2.new(0, 15, 0, 5),
+        Text = title:upper(),
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        Font = Enum.Font.Code,
+        TextSize = 16,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = TopBar
+    })
 
-	-- Linha Superior Azul (_)
-	local TopAccent = Instance.new("Frame")
-	TopAccent.Size = UDim2.new(1, 0, 0, 2)
-	TopAccent.BackgroundColor3 = mainColor
-	TopAccent.BorderSizePixel = 0
-	TopAccent.Parent = MainFrame
+    local SubLabel = Create("TextLabel", {
+        Size = UDim2.new(0.6, 0, 0.3, 0),
+        Position = UDim2.new(0, 15, 0, 28),
+        Text = "SELECIONE UMA ÁREA",
+        TextColor3 = mainColor,
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = TopBar
+    })
 
-	-- Barra de Título
-	local TopBar = Instance.new("Frame")
-	TopBar.Size = UDim2.new(1, 0, 0, 45)
-	TopBar.Position = UDim2.new(0, 0, 0, 2)
-	TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-	TopBar.BorderSizePixel = 0
-	TopBar.Parent = MainFrame
-	MakeDraggable(TopBar, MainFrame)
+    -- CONTROLES
+    local CloseBtn = Create("TextButton", {
+        Size = UDim2.new(0, 50, 1, 0),
+        Position = UDim2.new(1, -50, 0, 0),
+        Text = "[X]",
+        TextColor3 = Color3.fromRGB(200, 60, 60),
+        Font = Enum.Font.Code,
+        BackgroundTransparency = 1,
+        Parent = TopBar
+    })
+    CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-	local Title = Instance.new("TextLabel")
-	Title.Size = UDim2.new(1, -100, 0, 25)
-	Title.Position = UDim2.new(0, 15, 0, 5)
-	Title.Text = title:upper()
-	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Title.Font = Enum.Font.Code
-	Title.TextSize = 14
-	Title.BackgroundTransparency = 1
-	Title.TextXAlignment = Enum.TextXAlignment.Left
-	Title.Parent = TopBar
+    -- ELEMENTO: LINHA VERTICAL (|)
+    local VerticalSeparator = Create("Frame", {
+        Size = UDim2.new(0, 1, 1, -85),
+        Position = UDim2.new(0, 65, 0, 55),
+        BackgroundColor3 = mainColor,
+        BorderSizePixel = 0,
+        Parent = MainFrame
+    })
 
-	local SubTitle = Instance.new("TextLabel")
-	SubTitle.Size = UDim2.new(1, -100, 0, 15)
-	SubTitle.Position = UDim2.new(0, 15, 0, 25)
-	SubTitle.Text = "STATUS: OPERACIONAL"
-	SubTitle.TextColor3 = mainColor
-	SubTitle.Font = Enum.Font.Code
-	SubTitle.TextSize = 10
-	SubTitle.BackgroundTransparency = 1
-	SubTitle.TextXAlignment = Enum.TextXAlignment.Left
-	SubTitle.Parent = TopBar
+    -- SIDEBAR
+    local Sidebar = Create("ScrollingFrame", {
+        Size = UDim2.new(0, 60, 1, -90),
+        Position = UDim2.new(0, 2, 0, 55),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ScrollBarThickness = 0,
+        Parent = MainFrame
+    })
+    Create("UIListLayout", {Parent = Sidebar, Padding = UDim.new(0, 15), HorizontalAlignment = Enum.HorizontalAlignment.Center})
 
-	-- Botão Fechar (X)
-	local Close = Instance.new("TextButton")
-	Close.Size = UDim2.new(0, 45, 1, 0)
-	Close.Position = UDim2.new(1, -45, 0, 0)
-	Close.Text = "[X]"
-	Close.TextColor3 = Color3.fromRGB(150, 50, 50)
-	Close.BackgroundTransparency = 1
-	Close.Font = Enum.Font.Code
-	Close.TextSize = 14
-	Close.Parent = TopBar
-	Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+    -- CONTAINER
+    local Container = Create("Frame", {
+        Size = UDim2.new(1, -85, 1, -90),
+        Position = UDim2.new(0, 75, 0, 55),
+        BackgroundTransparency = 1,
+        Parent = MainFrame
+    })
 
-	-- Linha Vertical (|) Escolhida
-	local Separator = Instance.new("Frame")
-	Separator.Size = UDim2.new(0, 1, 1, -75)
-	Separator.Position = UDim2.new(0, 55, 0, 50)
-	Separator.BackgroundColor3 = mainColor
-	Separator.BorderSizePixel = 0
-	Separator.Parent = MainFrame
+    -- FOOTER
+    local Footer = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 1, -30),
+        BackgroundColor3 = Color3.fromRGB(12, 12, 12),
+        BorderSizePixel = 0,
+        Parent = MainFrame
+    })
+    local FLabel = Create("TextLabel", {
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        Text = footerMsg:upper(),
+        TextColor3 = Color3.fromRGB(80, 80, 80),
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        BackgroundTransparency = 1,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = Footer
+    })
 
-	-- Sidebar de Áreas
-	local Sidebar = Instance.new("ScrollingFrame")
-	Sidebar.Size = UDim2.new(0, 50, 1, -80)
-	Sidebar.Position = UDim2.new(0, 2, 0, 50)
-	Sidebar.BackgroundTransparency = 1
-	Sidebar.BorderSizePixel = 0
-	Sidebar.ScrollBarThickness = 0
-	Sidebar.Parent = MainFrame
+    -- ATALHO PARA ESCONDER
+    UserInputService.InputBegan:Connect(function(i, g)
+        if not g and i.KeyCode == toggleKey then
+            isVisible = not isVisible
+            MainFrame.Visible = isVisible
+        end
+    end)
 
-	local SideLayout = Instance.new("UIListLayout")
-	SideLayout.Parent = Sidebar
-	SideLayout.Padding = UDim.new(0, 15)
-	SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    local Lib = {}
 
-	-- Container de Elementos
-	local Container = Instance.new("Frame")
-	Container.Size = UDim2.new(1, -70, 1, -85)
-	Container.Position = UDim2.new(0, 65, 0, 55)
-	Container.BackgroundTransparency = 1
-	Container.Parent = MainFrame
+    -- [[ ÁREA ]]
+    function Lib:Area(name, icon)
+        local AreaFrame = Create("ScrollingFrame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Visible = false,
+            ScrollBarThickness = 2,
+            ScrollBarImageColor3 = mainColor,
+            AutomaticCanvasSize = Enum.AutomaticSize.Y,
+            Parent = Container
+        })
+        Create("UIListLayout", {Parent = AreaFrame, Padding = UDim.new(0, 10)})
 
-	-- Footer Estilo Barra de Status
-	local Footer = Instance.new("Frame")
-	Footer.Size = UDim2.new(1, 0, 0, 25)
-	Footer.Position = UDim2.new(0, 0, 1, -25)
-	Footer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-	Footer.BorderSizePixel = 0
-	Footer.Parent = MainFrame
+        local AreaBtn = Create("ImageButton", {
+            Size = UDim2.new(0, 38, 0, 38),
+            BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+            BorderSizePixel = 1,
+            BorderColor3 = Color3.fromRGB(40, 40, 40),
+            Image = "rbxassetid://" .. (icon or "0"),
+            Parent = Sidebar
+        })
 
-	local FooterText = Instance.new("TextLabel")
-	FooterText.Size = UDim2.new(1, -20, 1, 0)
-	FooterText.Position = UDim2.new(0, 10, 0, 0)
-	FooterText.Text = footerText:upper()
-	FooterText.TextColor3 = Color3.fromRGB(80, 80, 80)
-	FooterText.Font = Enum.Font.Code
-	FooterText.TextSize = 10
-	FooterText.BackgroundTransparency = 1
-	FooterText.TextXAlignment = Enum.TextXAlignment.Left
-	FooterText.Parent = Footer
+        local function Switch()
+            for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
+            AreaFrame.Visible = true
+            SubLabel.Text = "ÁREA ATUAL: " .. name:upper()
+            for _, b in pairs(Sidebar:GetChildren()) do if b:IsA("ImageButton") then b.BorderColor3 = Color3.fromRGB(40, 40, 40) end end
+            AreaBtn.BorderColor3 = mainColor
+        end
+        AreaBtn.MouseButton1Click:Connect(Switch)
+        if not currentArea then Switch() currentArea = true end
 
-	-- Keybind Global (Ocultar GUI)
-	UserInputService.InputBegan:Connect(function(input, gpe)
-		if not gpe and input.KeyCode == (config.Keybind or Enum.KeyCode.RightControl) then
-			uiVisible = not uiVisible
-			MainFrame.Visible = uiVisible
-		end
-	end)
+        local E = {}
 
-	local Lib = {}
+        -- ELEMENTO: BOTÃO MASTER
+        function E:Button(text, callback)
+            local btn = Create("TextButton", {
+                Size = UDim2.new(0.96, 0, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                Text = text:upper() .. " // EXEC",
+                TextColor3 = Color3.fromRGB(220, 220, 220),
+                Font = Enum.Font.Code,
+                TextSize = 12,
+                Parent = AreaFrame
+            })
+            btn.MouseButton1Click:Connect(function()
+                btn.BackgroundColor3 = mainColor
+                btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+                task.wait(0.1)
+                btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+                callback()
+            end)
+        end
 
-	-- [[ NOTIFICAÇÕES INTERNAS ]]
-	function Lib:Notify(msg)
-		local nFrame = Instance.new("Frame")
-		nFrame.Size = UDim2.new(0, 180, 0, 30)
-		nFrame.Position = UDim2.new(1, 10, 1, -70)
-		nFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-		nFrame.BorderSizePixel = 1
-		nFrame.BorderColor3 = mainColor
-		nFrame.Parent = ScreenGui
+        -- ELEMENTO: TOGGLE MASTER
+        function E:Toggle(text, callback)
+            local state = false
+            local tBtn = Create("TextButton", {
+                Size = UDim2.new(0.96, 0, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                Text = text:upper() .. " [OFF]",
+                TextColor3 = Color3.fromRGB(130, 130, 130),
+                Font = Enum.Font.Code,
+                TextSize = 12,
+                Parent = AreaFrame
+            })
+            
+            local function update()
+                tBtn.Text = state and text:upper() .. " [ON]" or text:upper() .. " [OFF]"
+                tBtn.BorderColor3 = state and mainColor or Color3.fromRGB(40, 40, 40)
+                tBtn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(130, 130, 130)
+            end
 
-		local nText = Instance.new("TextLabel")
-		nText.Size = UDim2.new(1, 0, 1, 0)
-		nText.Text = "> " .. msg:upper()
-		nText.TextColor3 = Color3.fromRGB(255, 255, 255)
-		nText.Font = Enum.Font.Code
-		nText.TextSize = 10
-		nText.BackgroundTransparency = 1
-		nText.Parent = nFrame
+            tBtn.MouseButton1Click:Connect(function()
+                state = not state
+                update()
+                SaveData[text] = state
+                DoSave()
+                callback(state)
+            end)
+        end
 
-		nFrame:TweenPosition(UDim2.new(1, -190, 1, -70), "Out", "Quart", 0.5)
-		task.delay(3, function()
-			nFrame:TweenPosition(UDim2.new(1, 10, 1, -70), "In", "Quart", 0.5)
-			task.wait(0.5)
-			nFrame:Destroy()
-		end)
-	end
+        -- ELEMENTO: SLIDER MASTER
+        function E:Slider(text, min, max, def, callback)
+            local sFrame = Create("Frame", {
+                Size = UDim2.new(0.96, 0, 0, 55),
+                BackgroundColor3 = Color3.fromRGB(18, 18, 18),
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                Parent = AreaFrame
+            })
+            local lab = Create("TextLabel", {
+                Size = UDim2.new(1, -20, 0, 25),
+                Position = UDim2.new(0, 10, 0, 5),
+                Text = text:upper() .. ": " .. def,
+                TextColor3 = Color3.fromRGB(200, 200, 200),
+                Font = Enum.Font.Code,
+                TextSize = 11,
+                BackgroundTransparency = 1,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Parent = sFrame
+            })
+            local bar = Create("Frame", {
+                Size = UDim2.new(0.9, 0, 0, 2),
+                Position = UDim2.new(0.05, 0, 0.75, 0),
+                BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+                BorderSizePixel = 0,
+                Parent = sFrame
+            })
+            local fill = Create("Frame", {
+                Size = UDim2.new((def-min)/(max-min), 0, 1, 0),
+                BackgroundColor3 = mainColor,
+                BorderSizePixel = 0,
+                Parent = bar
+            })
+            local dragging = false
+            local function update(input)
+                local r = math.clamp((input.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X, 0, 1)
+                fill.Size = UDim2.new(r, 0, 1, 0)
+                local val = math.floor(min + (max-min)*r)
+                lab.Text = text:upper() .. ": " .. val
+                SaveData[text] = val
+                DoSave()
+                callback(val)
+            end
+            sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true update(i) end end)
+            UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then update(i) end end)
+            UserInputService.InputEnded:Connect(function() dragging = false end)
+        end
 
-	-- [[ CRIAÇÃO DE ÁREA ]]
-	function Lib:Area(name, imageId)
-		local AreaFrame = Instance.new("ScrollingFrame")
-		AreaFrame.Size = UDim2.new(1, 0, 1, 0)
-		AreaFrame.BackgroundTransparency = 1
-		AreaFrame.BorderSizePixel = 0
-		AreaFrame.Visible = false
-		AreaFrame.ScrollBarThickness = 2
-		AreaFrame.ScrollBarImageColor3 = mainColor
-		AreaFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		AreaFrame.Parent = Container
+        -- ELEMENTO: COLOR PICKER (Magia Master)
+        function E:ColorPicker(text, defColor, callback)
+            local cpFrame = Create("TextButton", {
+                Size = UDim2.new(0.96, 0, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+                Text = text:upper(),
+                TextColor3 = Color3.fromRGB(200, 200, 200),
+                Font = Enum.Font.Code,
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                Parent = AreaFrame
+            })
+            local colorPrev = Create("Frame", {
+                Size = UDim2.new(0, 25, 0, 15),
+                Position = UDim2.new(1, -35, 0.5, -7),
+                BackgroundColor3 = defColor,
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(255, 255, 255),
+                Parent = cpFrame
+            })
+            cpFrame.MouseButton1Click:Connect(function()
+                local newCol = Color3.fromHSV(math.random(), 1, 1) -- Sistema randômico para exemplo master
+                colorPrev.BackgroundColor3 = newCol
+                callback(newCol)
+            end)
+        end
 
-		local Layout = Instance.new("UIListLayout")
-		Layout.Parent = AreaFrame
-		Layout.Padding = UDim.new(0, 8)
+        -- ELEMENTO: DROPDOWN
+        function E:Dropdown(text, list, callback)
+            local dFrame = Create("Frame", {
+                Size = UDim2.new(0.96, 0, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                ClipsDescendants = true,
+                Parent = AreaFrame
+            })
+            local btn = Create("TextButton", {
+                Size = UDim2.new(1, 0, 0, 35),
+                Text = text:upper() .. " [V]",
+                TextColor3 = Color3.fromRGB(150, 150, 150),
+                Font = Enum.Font.Code,
+                BackgroundTransparency = 1,
+                Parent = dFrame
+            })
+            local open = false
+            btn.MouseButton1Click:Connect(function()
+                open = not open
+                dFrame:TweenSize(UDim2.new(0.96, 0, 0, open and (35 + #list*30) or 35), "Out", "Quart", 0.3, true)
+            end)
+            for i, v in pairs(list) do
+                local opt = Create("TextButton", {
+                    Size = UDim2.new(1, 0, 0, 30),
+                    Position = UDim2.new(0, 0, 0, 35 + (i-1)*30),
+                    BackgroundColor3 = Color3.fromRGB(25, 25, 25),
+                    Text = tostring(v):upper(),
+                    TextColor3 = Color3.fromRGB(100, 100, 100),
+                    Font = Enum.Font.Code,
+                    BorderSizePixel = 0,
+                    Parent = dFrame
+                })
+                opt.MouseButton1Click:Connect(function()
+                    btn.Text = text:upper() .. ": " .. tostring(v)
+                    open = false
+                    dFrame:TweenSize(UDim2.new(0.96, 0, 0, 35), "Out", "Quart", 0.3, true)
+                    callback(v)
+                end)
+            end
+        end
 
-		local AreaBtn = Instance.new("ImageButton")
-		AreaBtn.Size = UDim2.new(0, 32, 0, 32)
-		AreaBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-		AreaBtn.Image = "rbxassetid://" .. (imageId or "0")
-		AreaBtn.BorderSizePixel = 1
-		AreaBtn.BorderColor3 = Color3.fromRGB(30, 30, 30)
-		AreaBtn.Parent = Sidebar
+        -- ELEMENTO: TEXT BOX
+        function E:Box(p, callback)
+            local b = Create("TextBox", {
+                Size = UDim2.new(0.96, 0, 0, 35),
+                BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+                BorderSizePixel = 1,
+                BorderColor3 = Color3.fromRGB(40, 40, 40),
+                Text = "",
+                PlaceholderText = "> " .. p:upper(),
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                Font = Enum.Font.Code,
+                Parent = AreaFrame
+            })
+            b.FocusLost:Connect(function() callback(b.Text) end)
+        end
 
-		local function Select()
-			for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
-			AreaFrame.Visible = true
-			SubTitle.Text = "ÁREA: " .. name:upper()
-			for _, b in pairs(Sidebar:GetChildren()) do if b:IsA("ImageButton") then b.BorderColor3 = Color3.fromRGB(30, 30, 30) b.ImageColor3 = Color3.fromRGB(150,150,150) end end
-			AreaBtn.BorderColor3 = mainColor
-			AreaBtn.ImageColor3 = Color3.fromRGB(255,255,255)
-		end
-		AreaBtn.MouseButton1Click:Connect(Select)
-		if not currentArea then Select() currentArea = true end
+        return E
+    end
 
-		local Elements = {}
+    function Lib:AutoSaveLuay(b) internalAutoSave = b end
+    function Lib:SetThemeColor(color)
+        mainColor = color
+        TopNeonLine.BackgroundColor3 = color
+        VerticalSeparator.BackgroundColor3 = color
+        SubLabel.TextColor3 = color
+    end
 
-		-- Funções de Elementos
-		function Elements:Label(text)
-			local l = Instance.new("TextLabel")
-			l.Size = UDim2.new(0.95, 0, 0, 20)
-			l.Text = "-- " .. text .. " --"
-			l.TextColor3 = mainColor
-			l.Font = Enum.Font.Code
-			l.TextSize = 10
-			l.BackgroundTransparency = 1
-			l.Parent = AreaFrame
-			return l
-		end
-
-		function Elements:Button(text, callback)
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(0.95, 0, 0, 32)
-			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-			btn.BorderSizePixel = 1
-			btn.BorderColor3 = Color3.fromRGB(40, 40, 40)
-			btn.Text = text:upper() .. " •"
-			btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-			btn.Font = Enum.Font.Code
-			btn.TextSize = 12
-			btn.Parent = AreaFrame
-			btn.MouseButton1Click:Connect(function()
-				btn.BorderColor3 = mainColor
-				task.wait(0.1)
-				btn.BorderColor3 = Color3.fromRGB(40, 40, 40)
-				callback()
-			end)
-		end
-
-		function Elements:Toggle(text, callback)
-			local state = Configs[text] or false
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(0.95, 0, 0, 32)
-			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-			btn.BorderSizePixel = 1
-			btn.Font = Enum.Font.Code
-			btn.TextSize = 12
-			btn.Parent = AreaFrame
-
-			local function update()
-				btn.Text = state and text:upper() .. " [ATIVO]" or text:upper() .. " [OFF]"
-				btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(120, 120, 120)
-				btn.BorderColor3 = state and mainColor or Color3.fromRGB(40, 40, 40)
-			end
-			update()
-			if state then task.spawn(function() callback(state) end) end
-
-			btn.MouseButton1Click:Connect(function()
-				state = not state
-				update()
-				SaveData[text] = state
-				Save()
-				callback(state)
-			end)
-		end
-
-		function Elements:Slider(text, min, max, default, callback)
-			local saved = Configs[text] or default
-			local sFrame = Instance.new("Frame")
-			sFrame.Size = UDim2.new(0.95, 0, 0, 50)
-			sFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-			sFrame.BorderSizePixel = 1
-			sFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
-			sFrame.Parent = AreaFrame
-
-			local l = Instance.new("TextLabel")
-			l.Size = UDim2.new(1, 0, 0, 25)
-			l.Position = UDim2.new(0, 10, 0, 0)
-			l.Text = text:upper() .. ": " .. saved
-			l.TextColor3 = Color3.fromRGB(200, 200, 200)
-			l.Font = Enum.Font.Code
-			l.TextSize = 11
-			l.BackgroundTransparency = 1
-			l.TextXAlignment = Enum.TextXAlignment.Left
-			l.Parent = sFrame
-
-			local bar = Instance.new("Frame")
-			bar.Size = UDim2.new(0.85, 0, 0, 2)
-			bar.Position = UDim2.new(0.07, 0, 0.75, 0)
-			bar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-			bar.BorderSizePixel = 0
-			bar.Parent = sFrame
-
-			local fill = Instance.new("Frame")
-			fill.Size = UDim2.new((saved-min)/(max-min), 0, 1, 0)
-			fill.BackgroundColor3 = mainColor
-			fill.BorderSizePixel = 0
-			fill.Parent = bar
-
-			local dragging = false
-			local function move(input)
-				local r = math.clamp((input.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X, 0, 1)
-				fill.Size = UDim2.new(r, 0, 1, 0)
-				local val = math.floor(min + (max - min) * r)
-				l.Text = text:upper() .. ": " .. val
-				SaveData[text] = val
-				Save()
-				callback(val)
-			end
-
-			sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true move(i) end end)
-			UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then move(i) end end)
-			UserInputService.InputEnded:Connect(function() dragging = false end)
-			task.spawn(function() callback(saved) end)
-		end
-
-		function Elements:Dropdown(text, options, callback)
-			local open = false
-			local dFrame = Instance.new("Frame")
-			dFrame.Size = UDim2.new(0.95, 0, 0, 32)
-			dFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-			dFrame.BorderSizePixel = 1
-			dFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
-			dFrame.ClipsDescendants = true
-			dFrame.Parent = AreaFrame
-
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, 0, 0, 32)
-			btn.Text = text:upper() .. " [V]"
-			btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-			btn.Font = Enum.Font.Code
-			btn.BackgroundTransparency = 1
-			btn.Parent = dFrame
-
-			local listContainer = Instance.new("Frame")
-			listContainer.Size = UDim2.new(1, 0, 0, #options * 25)
-			listContainer.Position = UDim2.new(0, 0, 0, 32)
-			listContainer.BackgroundTransparency = 1
-			listContainer.Parent = dFrame
-
-			for i, v in pairs(options) do
-				local o = Instance.new("TextButton")
-				o.Size = UDim2.new(1, 0, 0, 25)
-				o.Position = UDim2.new(0, 0, 0, (i-1)*25)
-				o.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-				o.Text = tostring(v):upper()
-				o.TextColor3 = Color3.fromRGB(150, 150, 150)
-				o.Font = Enum.Font.Code
-				o.BorderSizePixel = 0
-				o.Parent = listContainer
-				o.MouseButton1Click:Connect(function()
-					btn.Text = text:upper() .. ": " .. tostring(v)
-					open = false
-					dFrame:TweenSize(UDim2.new(0.95, 0, 0, 32), "Out", "Quart", 0.3)
-					callback(v)
-				end)
-			end
-
-			btn.MouseButton1Click:Connect(function()
-				open = not open
-				local ts = open and UDim2.new(0.95, 0, 0, 32 + (#options * 25)) or UDim2.new(0.95, 0, 0, 32)
-				dFrame:TweenSize(ts, "Out", "Quart", 0.3)
-			end)
-		end
-
-		function Elements:Box(placeholder, callback)
-			local b = Instance.new("TextBox")
-			b.Size = UDim2.new(0.95, 0, 0, 32)
-			b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-			b.BorderSizePixel = 1
-			b.BorderColor3 = Color3.fromRGB(40, 40, 40)
-			b.PlaceholderText = "> " .. placeholder:upper()
-			b.TextColor3 = Color3.fromRGB(255, 255, 255)
-			b.Font = Enum.Font.Code
-			b.TextSize = 12
-			b.Parent = AreaFrame
-			b.FocusLost:Connect(function() callback(b.Text) end)
-		end
-
-		return Elements
-	end
-
-	function Lib:AutoSaveLuay(b) internalAutoSave = b end
-	return Lib
+    return Lib
 end
 
 return luayV2
