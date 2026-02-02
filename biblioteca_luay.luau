@@ -3,35 +3,25 @@ local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local plr = players.LocalPlayer
 
--- Função de Arrastar (Draggable) aprimorada
+-- [[ FUNÇÕES AUXILIARES DE MAGIA ]]
 local function MakeDraggable(frame, parent)
-	local dragging = false
-	local dragInput, dragStart, startPos
-
+	local dragging, dragInput, dragStart, startPos
 	frame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = parent.Position
 			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					dragging = false
-				end
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
 			end)
 		end
 	end)
-
-	frame.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-			dragInput = input
-		end
-	end)
-
 	UserInputService.InputChanged:Connect(function(input)
-		if input == dragInput and dragging then
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
 			parent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 		end
@@ -39,122 +29,127 @@ local function MakeDraggable(frame, parent)
 end
 
 function luayV2:Window(config)
-	local title = config.Name or "luayV2"
+	local title = config.Name or "LUAY V2"
 	local mainColor = config.Color or Color3.fromRGB(0, 170, 255)
-	local footerText = config.Footer or "luayV2 | Community"
-	local toggleKey = config.Keybind or Enum.KeyCode.RightControl
-	local fileName = "luayV2_Config_" .. plr.UserId .. ".json"
+	local footerText = config.Footer or "SISTEMA OPERACIONAL LUAY"
+	local fileName = "luayV2_Data_" .. plr.UserId .. ".json"
 	
 	local SaveData = {}
 	local internalAutoSave = false
 	local currentArea = nil
 	local uiVisible = true
 
-	local function SaveToFile()
+	-- Funções de Persistência
+	local function Save()
 		if not internalAutoSave then return end
-		local success, json = pcall(function() return HttpService:JSONEncode(SaveData) end)
-		if success and writefile then writefile(fileName, json) end
+		local json = HttpService:JSONEncode(SaveData)
+		if writefile then writefile(fileName, json) end
 	end
 
-	local function LoadFromFile()
+	local function Load()
 		if isfile and isfile(fileName) then
-			local success, content = pcall(function() return readfile(fileName) end)
-			if success then return HttpService:JSONDecode(content) end
+			local content = readfile(fileName)
+			return HttpService:JSONDecode(content)
 		end
 		return {}
 	end
 
-	local Configs = LoadFromFile()
+	local Configs = Load()
 
-	-- GUI PRINCIPAL
+	-- [[ ESTRUTURA VISUAL HARD-EDGE ]]
 	local ScreenGui = Instance.new("ScreenGui")
-	ScreenGui.Name = "luayV2_Engine"
+	ScreenGui.Name = "LUAY_V2_INDUSTRIAL"
 	ScreenGui.ResetOnSpawn = false
-	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = game:GetService("CoreGui") end
+	if gethui then ScreenGui.Parent = gethui() else ScreenGui.Parent = CoreGui end
 
 	local MainFrame = Instance.new("Frame")
-	MainFrame.Name = "Main"
-	MainFrame.Size = UDim2.new(0, 300, 0, 400)
-	MainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-	MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-	MainFrame.BorderSizePixel = 0
-	MainFrame.ClipsDescendants = true
+	MainFrame.Name = "MainFrame"
+	MainFrame.Size = UDim2.new(0, 350, 0, 450)
+	MainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+	MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+	MainFrame.BorderSizePixel = 1
+	MainFrame.BorderColor3 = Color3.fromRGB(35, 35, 35)
 	MainFrame.Parent = ScreenGui
 
-	local MainCorner = Instance.new("UICorner")
-	MainCorner.CornerRadius = UDim.new(0, 6)
-	MainCorner.Parent = MainFrame
+	-- Efeito Scanline (Linhas de TV Antiga)
+	local Scanline = Instance.new("Frame")
+	Scanline.Size = UDim2.new(1, 0, 0, 2)
+	Scanline.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Scanline.BackgroundTransparency = 0.95
+	Scanline.BorderSizePixel = 0
+	Scanline.ZIndex = 10
+	Scanline.Parent = MainFrame
+	task.spawn(function()
+		while task.wait() do
+			Scanline.Position = UDim2.new(0, 0, 0, 0)
+			local tween = TweenService:Create(Scanline, TweenInfo.new(4, Enum.EasingStyle.Linear), {Position = UDim2.new(0, 0, 1, 0)})
+			tween:Play()
+			tween.Completed:Wait()
+		end
+	end)
 
-	local Stroke = Instance.new("UIStroke")
-	Stroke.Thickness = 1
-	Stroke.Color = Color3.fromRGB(35, 35, 35)
-	Stroke.Parent = MainFrame
+	-- Linha Superior Azul (_)
+	local TopAccent = Instance.new("Frame")
+	TopAccent.Size = UDim2.new(1, 0, 0, 2)
+	TopAccent.BackgroundColor3 = mainColor
+	TopAccent.BorderSizePixel = 0
+	TopAccent.Parent = MainFrame
 
-	-- BARRA SUPERIOR
+	-- Barra de Título
 	local TopBar = Instance.new("Frame")
-	TopBar.Name = "TopBar"
-	TopBar.Size = UDim2.new(1, 0, 0, 50)
-	TopBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+	TopBar.Size = UDim2.new(1, 0, 0, 45)
+	TopBar.Position = UDim2.new(0, 0, 0, 2)
+	TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 	TopBar.BorderSizePixel = 0
 	TopBar.Parent = MainFrame
 	MakeDraggable(TopBar, MainFrame)
 
-	local TitleLabel = Instance.new("TextLabel")
-	TitleLabel.Size = UDim2.new(1, -100, 0, 28)
-	TitleLabel.Position = UDim2.new(0, 15, 0, 4)
-	TitleLabel.Text = title:upper()
-	TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	TitleLabel.BackgroundTransparency = 1
-	TitleLabel.Font = Enum.Font.Code
-	TitleLabel.TextSize = 15
-	TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-	TitleLabel.Parent = TopBar
+	local Title = Instance.new("TextLabel")
+	Title.Size = UDim2.new(1, -100, 0, 25)
+	Title.Position = UDim2.new(0, 15, 0, 5)
+	Title.Text = title:upper()
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.Font = Enum.Font.Code
+	Title.TextSize = 14
+	Title.BackgroundTransparency = 1
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+	Title.Parent = TopBar
 
-	local SubtitleLabel = Instance.new("TextLabel")
-	SubtitleLabel.Size = UDim2.new(1, -100, 0, 15)
-	SubtitleLabel.Position = UDim2.new(0, 15, 0, 26)
-	SubtitleLabel.Text = "CARREGANDO..."
-	SubtitleLabel.TextColor3 = mainColor
-	SubtitleLabel.BackgroundTransparency = 1
-	SubtitleLabel.Font = Enum.Font.Code
-	SubtitleLabel.TextSize = 11
-	SubtitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-	SubtitleLabel.Parent = TopBar
+	local SubTitle = Instance.new("TextLabel")
+	SubTitle.Size = UDim2.new(1, -100, 0, 15)
+	SubTitle.Position = UDim2.new(0, 15, 0, 25)
+	SubTitle.Text = "STATUS: OPERACIONAL"
+	SubTitle.TextColor3 = mainColor
+	SubTitle.Font = Enum.Font.Code
+	SubTitle.TextSize = 10
+	SubTitle.BackgroundTransparency = 1
+	SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+	SubTitle.Parent = TopBar
 
-	-- CONTROLES (X e _)
-	local CloseBtn = Instance.new("TextButton")
-	CloseBtn.Size = UDim2.new(0, 40, 0, 40)
-	CloseBtn.Position = UDim2.new(1, -40, 0, 0)
-	CloseBtn.Text = "×"
-	CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-	CloseBtn.BackgroundTransparency = 1
-	CloseBtn.Font = Enum.Font.Code
-	CloseBtn.TextSize = 24
-	CloseBtn.Parent = TopBar
-	CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+	-- Botão Fechar (X)
+	local Close = Instance.new("TextButton")
+	Close.Size = UDim2.new(0, 45, 1, 0)
+	Close.Position = UDim2.new(1, -45, 0, 0)
+	Close.Text = "[X]"
+	Close.TextColor3 = Color3.fromRGB(150, 50, 50)
+	Close.BackgroundTransparency = 1
+	Close.Font = Enum.Font.Code
+	Close.TextSize = 14
+	Close.Parent = TopBar
+	Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-	local MiniBtn = Instance.new("TextButton")
-	MiniBtn.Size = UDim2.new(0, 40, 0, 40)
-	MiniBtn.Position = UDim2.new(1, -80, 0, 0)
-	MiniBtn.Text = "—"
-	MiniBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-	MiniBtn.BackgroundTransparency = 1
-	MiniBtn.Font = Enum.Font.Code
-	MiniBtn.TextSize = 18
-	MiniBtn.Parent = TopBar
+	-- Linha Vertical (|) Escolhida
+	local Separator = Instance.new("Frame")
+	Separator.Size = UDim2.new(0, 1, 1, -75)
+	Separator.Position = UDim2.new(0, 55, 0, 50)
+	Separator.BackgroundColor3 = mainColor
+	Separator.BorderSizePixel = 0
+	Separator.Parent = MainFrame
 
-	local isMinimized = false
-	MiniBtn.MouseButton1Click:Connect(function()
-		isMinimized = not isMinimized
-		local targetSize = isMinimized and UDim2.new(0, 300, 0, 50) or UDim2.new(0, 300, 0, 400)
-		TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
-	end)
-
-	-- SIDEBAR
+	-- Sidebar de Áreas
 	local Sidebar = Instance.new("ScrollingFrame")
 	Sidebar.Size = UDim2.new(0, 50, 1, -80)
-	Sidebar.Position = UDim2.new(0, 5, 0, 55)
+	Sidebar.Position = UDim2.new(0, 2, 0, 50)
 	Sidebar.BackgroundTransparency = 1
 	Sidebar.BorderSizePixel = 0
 	Sidebar.ScrollBarThickness = 0
@@ -162,31 +157,38 @@ function luayV2:Window(config)
 
 	local SideLayout = Instance.new("UIListLayout")
 	SideLayout.Parent = Sidebar
-	SideLayout.Padding = UDim.new(0, 10)
+	SideLayout.Padding = UDim.new(0, 15)
 	SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-	-- CONTAINER
+	-- Container de Elementos
 	local Container = Instance.new("Frame")
-	Container.Size = UDim2.new(1, -65, 1, -80)
-	Container.Position = UDim2.new(0, 60, 0, 55)
+	Container.Size = UDim2.new(1, -70, 1, -85)
+	Container.Position = UDim2.new(0, 65, 0, 55)
 	Container.BackgroundTransparency = 1
 	Container.Parent = MainFrame
 
-	-- FOOTER
-	local Footer = Instance.new("TextLabel")
+	-- Footer Estilo Barra de Status
+	local Footer = Instance.new("Frame")
 	Footer.Size = UDim2.new(1, 0, 0, 25)
 	Footer.Position = UDim2.new(0, 0, 1, -25)
-	Footer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	Footer.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 	Footer.BorderSizePixel = 0
-	Footer.Text = footerText
-	Footer.TextColor3 = Color3.fromRGB(80, 80, 80)
-	Footer.Font = Enum.Font.Code
-	Footer.TextSize = 10
 	Footer.Parent = MainFrame
 
-	-- Toggle Keybind Global
+	local FooterText = Instance.new("TextLabel")
+	FooterText.Size = UDim2.new(1, -20, 1, 0)
+	FooterText.Position = UDim2.new(0, 10, 0, 0)
+	FooterText.Text = footerText:upper()
+	FooterText.TextColor3 = Color3.fromRGB(80, 80, 80)
+	FooterText.Font = Enum.Font.Code
+	FooterText.TextSize = 10
+	FooterText.BackgroundTransparency = 1
+	FooterText.TextXAlignment = Enum.TextXAlignment.Left
+	FooterText.Parent = Footer
+
+	-- Keybind Global (Ocultar GUI)
 	UserInputService.InputBegan:Connect(function(input, gpe)
-		if not gpe and input.KeyCode == toggleKey then
+		if not gpe and input.KeyCode == (config.Keybind or Enum.KeyCode.RightControl) then
 			uiVisible = not uiVisible
 			MainFrame.Visible = uiVisible
 		end
@@ -194,77 +196,98 @@ function luayV2:Window(config)
 
 	local Lib = {}
 
+	-- [[ NOTIFICAÇÕES INTERNAS ]]
+	function Lib:Notify(msg)
+		local nFrame = Instance.new("Frame")
+		nFrame.Size = UDim2.new(0, 180, 0, 30)
+		nFrame.Position = UDim2.new(1, 10, 1, -70)
+		nFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+		nFrame.BorderSizePixel = 1
+		nFrame.BorderColor3 = mainColor
+		nFrame.Parent = ScreenGui
+
+		local nText = Instance.new("TextLabel")
+		nText.Size = UDim2.new(1, 0, 1, 0)
+		nText.Text = "> " .. msg:upper()
+		nText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		nText.Font = Enum.Font.Code
+		nText.TextSize = 10
+		nText.BackgroundTransparency = 1
+		nText.Parent = nFrame
+
+		nFrame:TweenPosition(UDim2.new(1, -190, 1, -70), "Out", "Quart", 0.5)
+		task.delay(3, function()
+			nFrame:TweenPosition(UDim2.new(1, 10, 1, -70), "In", "Quart", 0.5)
+			task.wait(0.5)
+			nFrame:Destroy()
+		end)
+	end
+
+	-- [[ CRIAÇÃO DE ÁREA ]]
 	function Lib:Area(name, imageId)
 		local AreaFrame = Instance.new("ScrollingFrame")
 		AreaFrame.Size = UDim2.new(1, 0, 1, 0)
 		AreaFrame.BackgroundTransparency = 1
 		AreaFrame.BorderSizePixel = 0
+		AreaFrame.Visible = false
 		AreaFrame.ScrollBarThickness = 2
 		AreaFrame.ScrollBarImageColor3 = mainColor
-		AreaFrame.Visible = false
 		AreaFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 		AreaFrame.Parent = Container
 
 		local Layout = Instance.new("UIListLayout")
 		Layout.Parent = AreaFrame
 		Layout.Padding = UDim.new(0, 8)
-		
+
 		local AreaBtn = Instance.new("ImageButton")
-		AreaBtn.Size = UDim2.new(0, 34, 0, 34)
-		AreaBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+		AreaBtn.Size = UDim2.new(0, 32, 0, 32)
+		AreaBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 		AreaBtn.Image = "rbxassetid://" .. (imageId or "0")
+		AreaBtn.BorderSizePixel = 1
+		AreaBtn.BorderColor3 = Color3.fromRGB(30, 30, 30)
 		AreaBtn.Parent = Sidebar
-		
-		local AreaCorner = Instance.new("UICorner")
-		AreaCorner.CornerRadius = UDim.new(0, 8)
-		AreaCorner.Parent = AreaBtn
 
 		local function Select()
-			for _, v in pairs(Container:GetChildren()) do 
-				if v:IsA("ScrollingFrame") then v.Visible = false end
-			end
+			for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
 			AreaFrame.Visible = true
-			SubtitleLabel.Text = name:upper()
-			-- Efeito de cor no botão selecionado
-			for _, b in pairs(Sidebar:GetChildren()) do
-				if b:IsA("ImageButton") then b.ImageColor3 = Color3.fromRGB(150, 150, 150) end
-			end
-			AreaBtn.ImageColor3 = mainColor
+			SubTitle.Text = "ÁREA: " .. name:upper()
+			for _, b in pairs(Sidebar:GetChildren()) do if b:IsA("ImageButton") then b.BorderColor3 = Color3.fromRGB(30, 30, 30) b.ImageColor3 = Color3.fromRGB(150,150,150) end end
+			AreaBtn.BorderColor3 = mainColor
+			AreaBtn.ImageColor3 = Color3.fromRGB(255,255,255)
 		end
-
 		AreaBtn.MouseButton1Click:Connect(Select)
 		if not currentArea then Select() currentArea = true end
 
 		local Elements = {}
 
+		-- Funções de Elementos
 		function Elements:Label(text)
-			local lab = Instance.new("TextLabel")
-			lab.Size = UDim2.new(0.96, 0, 0, 20)
-			lab.BackgroundTransparency = 1
-			lab.Text = text
-			lab.TextColor3 = Color3.fromRGB(150, 150, 150)
-			lab.Font = Enum.Font.Code
-			lab.TextSize = 11
-			lab.TextXAlignment = Enum.TextXAlignment.Left
-			lab.Parent = AreaFrame
+			local l = Instance.new("TextLabel")
+			l.Size = UDim2.new(0.95, 0, 0, 20)
+			l.Text = "-- " .. text .. " --"
+			l.TextColor3 = mainColor
+			l.Font = Enum.Font.Code
+			l.TextSize = 10
+			l.BackgroundTransparency = 1
+			l.Parent = AreaFrame
+			return l
 		end
 
 		function Elements:Button(text, callback)
 			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(0.96, 0, 0, 34)
-			btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-			btn.Text = text .. " •"
-			btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+			btn.Size = UDim2.new(0.95, 0, 0, 32)
+			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			btn.BorderSizePixel = 1
+			btn.BorderColor3 = Color3.fromRGB(40, 40, 40)
+			btn.Text = text:upper() .. " •"
+			btn.TextColor3 = Color3.fromRGB(200, 200, 200)
 			btn.Font = Enum.Font.Code
 			btn.TextSize = 12
 			btn.Parent = AreaFrame
-			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-			
 			btn.MouseButton1Click:Connect(function()
-				local t = TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = mainColor})
-				t:Play() t.Completed:Connect(function() 
-					TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 22)}):Play()
-				end)
+				btn.BorderColor3 = mainColor
+				task.wait(0.1)
+				btn.BorderColor3 = Color3.fromRGB(40, 40, 40)
 				callback()
 			end)
 		end
@@ -272,17 +295,17 @@ function luayV2:Window(config)
 		function Elements:Toggle(text, callback)
 			local state = Configs[text] or false
 			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(0.96, 0, 0, 34)
-			btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+			btn.Size = UDim2.new(0.95, 0, 0, 32)
+			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			btn.BorderSizePixel = 1
 			btn.Font = Enum.Font.Code
 			btn.TextSize = 12
 			btn.Parent = AreaFrame
-			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
 			local function update()
-				btn.Text = state and text .. " ✓" or text .. " ○"
-				btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
-				btn.BackgroundColor3 = state and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(22, 22, 22)
+				btn.Text = state and text:upper() .. " [ATIVO]" or text:upper() .. " [OFF]"
+				btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(120, 120, 120)
+				btn.BorderColor3 = state and mainColor or Color3.fromRGB(40, 40, 40)
 			end
 			update()
 			if state then task.spawn(function() callback(state) end) end
@@ -291,7 +314,7 @@ function luayV2:Window(config)
 				state = not state
 				update()
 				SaveData[text] = state
-				if internalAutoSave then SaveToFile() end
+				Save()
 				callback(state)
 			end)
 		end
@@ -299,138 +322,120 @@ function luayV2:Window(config)
 		function Elements:Slider(text, min, max, default, callback)
 			local saved = Configs[text] or default
 			local sFrame = Instance.new("Frame")
-			sFrame.Size = UDim2.new(0.96, 0, 0, 48)
-			sFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+			sFrame.Size = UDim2.new(0.95, 0, 0, 50)
+			sFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			sFrame.BorderSizePixel = 1
+			sFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
 			sFrame.Parent = AreaFrame
-			Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 4)
 
-			local lab = Instance.new("TextLabel")
-			lab.Size = UDim2.new(1, 0, 0, 22)
-			lab.Position = UDim2.new(0, 10, 0, 2)
-			lab.Text = text:upper()
-			lab.TextColor3 = Color3.fromRGB(180, 180, 180)
-			lab.BackgroundTransparency = 1
-			lab.Font = Enum.Font.Code
-			lab.TextSize = 10
-			lab.TextXAlignment = Enum.TextXAlignment.Left
-			lab.Parent = sFrame
+			local l = Instance.new("TextLabel")
+			l.Size = UDim2.new(1, 0, 0, 25)
+			l.Position = UDim2.new(0, 10, 0, 0)
+			l.Text = text:upper() .. ": " .. saved
+			l.TextColor3 = Color3.fromRGB(200, 200, 200)
+			l.Font = Enum.Font.Code
+			l.TextSize = 11
+			l.BackgroundTransparency = 1
+			l.TextXAlignment = Enum.TextXAlignment.Left
+			l.Parent = sFrame
 
 			local bar = Instance.new("Frame")
-			bar.Size = UDim2.new(0.75, 0, 0, 5)
-			bar.Position = UDim2.new(0.05, 0, 0.75, -5)
-			bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			bar.Size = UDim2.new(0.85, 0, 0, 2)
+			bar.Position = UDim2.new(0.07, 0, 0.75, 0)
+			bar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			bar.BorderSizePixel = 0
 			bar.Parent = sFrame
-			Instance.new("UICorner", bar).CornerRadius = UDim.new(1, 0)
 
 			local fill = Instance.new("Frame")
 			fill.Size = UDim2.new((saved-min)/(max-min), 0, 1, 0)
 			fill.BackgroundColor3 = mainColor
+			fill.BorderSizePixel = 0
 			fill.Parent = bar
-			Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-			local valLabel = Instance.new("TextLabel")
-			valLabel.Size = UDim2.new(0, 40, 0, 20)
-			valLabel.Position = UDim2.new(0.82, 0, 0.6, -10)
-			valLabel.Text = tostring(saved)
-			valLabel.TextColor3 = mainColor
-			valLabel.BackgroundTransparency = 1
-			valLabel.Font = Enum.Font.Code
-			valLabel.Parent = sFrame
 
 			local dragging = false
 			local function move(input)
 				local r = math.clamp((input.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X, 0, 1)
 				fill.Size = UDim2.new(r, 0, 1, 0)
 				local val = math.floor(min + (max - min) * r)
-				valLabel.Text = tostring(val)
+				l.Text = text:upper() .. ": " .. val
 				SaveData[text] = val
-				if internalAutoSave then SaveToFile() end
+				Save()
 				callback(val)
 			end
 
-			sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true move(i) end end)
-			UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then move(i) end end)
+			sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true move(i) end end)
+			UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then move(i) end end)
 			UserInputService.InputEnded:Connect(function() dragging = false end)
 			task.spawn(function() callback(saved) end)
 		end
 
-		function Elements:Dropdown(text, list, callback)
+		function Elements:Dropdown(text, options, callback)
 			local open = false
-			local dropFrame = Instance.new("Frame")
-			dropFrame.Size = UDim2.new(0.96, 0, 0, 34)
-			dropFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-			dropFrame.ClipsDescendants = true
-			dropFrame.Parent = AreaFrame
-			Instance.new("UICorner", dropFrame).CornerRadius = UDim.new(0, 4)
+			local dFrame = Instance.new("Frame")
+			dFrame.Size = UDim2.new(0.95, 0, 0, 32)
+			dFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			dFrame.BorderSizePixel = 1
+			dFrame.BorderColor3 = Color3.fromRGB(40, 40, 40)
+			dFrame.ClipsDescendants = true
+			dFrame.Parent = AreaFrame
 
 			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, 0, 0, 34)
-			btn.BackgroundTransparency = 1
-			btn.Text = text .. " >"
+			btn.Size = UDim2.new(1, 0, 0, 32)
+			btn.Text = text:upper() .. " [V]"
 			btn.TextColor3 = Color3.fromRGB(200, 200, 200)
 			btn.Font = Enum.Font.Code
-			btn.TextSize = 12
-			btn.Parent = dropFrame
+			btn.BackgroundTransparency = 1
+			btn.Parent = dFrame
 
-			local container = Instance.new("Frame")
-			container.Size = UDim2.new(1, 0, 0, #list * 30)
-			container.Position = UDim2.new(0, 0, 0, 34)
-			container.BackgroundTransparency = 1
-			container.Parent = dropFrame
+			local listContainer = Instance.new("Frame")
+			listContainer.Size = UDim2.new(1, 0, 0, #options * 25)
+			listContainer.Position = UDim2.new(0, 0, 0, 32)
+			listContainer.BackgroundTransparency = 1
+			listContainer.Parent = dFrame
 
-			for i, v in pairs(list) do
-				local item = Instance.new("TextButton")
-				item.Size = UDim2.new(1, 0, 0, 30)
-				item.Position = UDim2.new(0, 0, 0, (i-1)*30)
-				item.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
-				item.BorderSizePixel = 0
-				item.Text = tostring(v)
-				item.TextColor3 = Color3.fromRGB(150, 150, 150)
-				item.Font = Enum.Font.Code
-				item.TextSize = 11
-				item.Parent = container
-				item.MouseButton1Click:Connect(function()
-					btn.Text = text .. ": " .. tostring(v)
+			for i, v in pairs(options) do
+				local o = Instance.new("TextButton")
+				o.Size = UDim2.new(1, 0, 0, 25)
+				o.Position = UDim2.new(0, 0, 0, (i-1)*25)
+				o.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+				o.Text = tostring(v):upper()
+				o.TextColor3 = Color3.fromRGB(150, 150, 150)
+				o.Font = Enum.Font.Code
+				o.BorderSizePixel = 0
+				o.Parent = listContainer
+				o.MouseButton1Click:Connect(function()
+					btn.Text = text:upper() .. ": " .. tostring(v)
 					open = false
-					dropFrame:TweenSize(UDim2.new(0.96, 0, 0, 34), "Out", "Quart", 0.3, true)
+					dFrame:TweenSize(UDim2.new(0.95, 0, 0, 32), "Out", "Quart", 0.3)
 					callback(v)
 				end)
 			end
 
 			btn.MouseButton1Click:Connect(function()
 				open = not open
-				local target = open and UDim2.new(0.96, 0, 0, 34 + (#list * 30)) or UDim2.new(0.96, 0, 0, 34)
-				dropFrame:TweenSize(target, "Out", "Quart", 0.3, true)
+				local ts = open and UDim2.new(0.95, 0, 0, 32 + (#options * 25)) or UDim2.new(0.95, 0, 0, 32)
+				dFrame:TweenSize(ts, "Out", "Quart", 0.3)
 			end)
 		end
 
 		function Elements:Box(placeholder, callback)
-			local saved = Configs[placeholder] or ""
-			local box = Instance.new("TextBox")
-			box.Size = UDim2.new(0.96, 0, 0, 34)
-			box.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-			box.Text = saved
-			box.PlaceholderText = "> " .. placeholder .. "..."
-			box.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
-			box.TextColor3 = Color3.fromRGB(255, 255, 255)
-			box.Font = Enum.Font.Code
-			box.TextSize = 12
-			box.Parent = AreaFrame
-			Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-			
-			box.FocusLost:Connect(function(enter)
-				SaveData[placeholder] = box.Text
-				if internalAutoSave then SaveToFile() end
-				callback(box.Text)
-			end)
+			local b = Instance.new("TextBox")
+			b.Size = UDim2.new(0.95, 0, 0, 32)
+			b.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+			b.BorderSizePixel = 1
+			b.BorderColor3 = Color3.fromRGB(40, 40, 40)
+			b.PlaceholderText = "> " .. placeholder:upper()
+			b.TextColor3 = Color3.fromRGB(255, 255, 255)
+			b.Font = Enum.Font.Code
+			b.TextSize = 12
+			b.Parent = AreaFrame
+			b.FocusLost:Connect(function() callback(b.Text) end)
 		end
 
 		return Elements
 	end
 
 	function Lib:AutoSaveLuay(b) internalAutoSave = b end
-	function Lib:Save() internalAutoSave = true SaveToFile() end
-
 	return Lib
 end
 
