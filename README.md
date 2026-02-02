@@ -4,7 +4,7 @@ A luayV2 é uma biblioteca de interface (UI) para Roblox, focada em um estilo mi
 # 🚀 Como carregar:
 
 `Lua
-local luayV2 = loadstring(game:HttpGet("SEU_LINK_AQUI"))()`
+local luayV2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/higuysdorobloxjoaopk-maker/luay/refs/heads/main/biblioteca_luay.luau"))()`
 # 🛠 Funções principais
 `Window({Name, Color, Footer}): Cria a janela principal.`
 
@@ -20,7 +20,7 @@ local luayV2 = loadstring(game:HttpGet("SEU_LINK_AQUI"))()`
 
 # 📜Exemplo:
 ```luau
-local luayV2 = loadstring(game:HttpGet(""))() -- Coloque seu link aqui
+local luayV2 = loadstring(game:HttpGet("https://raw.githubusercontent.com/higuysdorobloxjoaopk-maker/luay/refs/heads/main/biblioteca_luay.luau"))()
 
 -- Criando a Janela
 local win = luayV2:Window({
