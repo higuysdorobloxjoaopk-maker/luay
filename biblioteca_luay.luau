@@ -13,10 +13,9 @@ function luayV2:Window(config)
     local TweenService = game:GetService("TweenService")
     
     local SaveData = {}
-    local canAutoSave = true
+    local internalAutoSave = false
     
     local function SaveToFile()
-        if not canAutoSave then return end
         local success, json = pcall(function() return HttpService:JSONEncode(SaveData) end)
         if success and writefile then writefile(fileName, json) end
     end
@@ -132,20 +131,19 @@ function luayV2:Window(config)
 
     local Lib = {}
 
-    function Lib:SetAutoSave(state)
-        canAutoSave = state
+    function Lib:AutoSaveLuay(bool)
+        internalAutoSave = bool
     end
 
-    function Lib:ForceSave()
-        local success, json = pcall(function() return HttpService:JSONEncode(SaveData) end)
-        if success and writefile then writefile(fileName, json) end
+    function Lib:Save()
+        SaveToFile()
     end
 
     function Lib:Button(text, callback)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(0.94, 0, 0, 32)
         btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        btn.Text = string.format("[ %s • ]", text)
+        btn.Text = "[ " .. text .. " • ]"
         btn.TextColor3 = Color3.fromRGB(230, 230, 230)
         btn.Font = Enum.Font.Code
         btn.TextSize = 12
@@ -163,17 +161,19 @@ function luayV2:Window(config)
         btn.TextSize = 12
         btn.BorderSizePixel = 0
         btn.Parent = Content
+
         local function update()
-            btn.Text = state and string.format("[ %s [✓] ]", text) or string.format("[ %s [ ] ]", text)
+            btn.Text = state and "[ " .. text .. " [✓] ]" or "[ " .. text .. " [ ] ]"
             btn.TextColor3 = state and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
         end
         update()
         if state then task.spawn(function() callback(state) end) end
+
         btn.MouseButton1Click:Connect(function()
             state = not state
             update()
             SaveData[text] = state
-            SaveToFile()
+            if internalAutoSave then SaveToFile() end
             callback(state)
         end)
         SaveData[text] = state
@@ -195,7 +195,7 @@ function luayV2:Window(config)
         if saved ~= "" then task.spawn(function() callback(saved) end) end
         box.FocusLost:Connect(function() 
             SaveData[placeholder] = box.Text
-            SaveToFile()
+            if internalAutoSave then SaveToFile() end
             callback(box.Text) 
         end)
     end
@@ -210,7 +210,7 @@ function luayV2:Window(config)
         local label = Instance.new("TextLabel")
         label.Size = UDim2.new(1, 0, 0, 20)
         label.Position = UDim2.new(0, 5, 0, 2)
-        label.Text = string.format("[ %s ]", text:upper())
+        label.Text = "[ " .. text:upper() .. " ]"
         label.TextColor3 = Color3.fromRGB(180, 180, 180)
         label.BackgroundTransparency = 1
         label.Font = Enum.Font.Code
@@ -249,7 +249,7 @@ function luayV2:Window(config)
             percentLabel.Text = string.format("[%d%%]", ratio * 100)
             local value = math.floor(min + (max - min) * ratio)
             SaveData[text] = value
-            SaveToFile()
+            if internalAutoSave then SaveToFile() end
             callback(value)
         end
         task.spawn(function() callback(saved) end)
