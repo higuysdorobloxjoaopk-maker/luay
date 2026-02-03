@@ -1,158 +1,231 @@
 --[[
-    luayV2 UI LIBRARY - UPDATED (NO UICORNER / COMPACT / SIDEBARS)
-    Desenvolvido por JoÃ£oPK
-    ModificaÃ§Ãµes:
-    - TODOS os UICorner removidos
-    - GUI menor e mais compacta
-    - Barra lateral fixa
-    - Barra superior + barra inferior coloridas (tema dinÃ¢mico)
+luayV2 UI LIBRARY - ULTIMATE EDITION (REVISED)
+Foco: Design Compacto, Bordas Retas e Navegação Intuitiva.
 ]]
 
 local luayV2 = {}
 
--- [[ SERVIÃ‡OS ]] --
+-- [[ SERVIÇOS ]] --
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local TextService = game:GetService("TextService")
 
 local plr = players.LocalPlayer
 local mouse = plr:GetMouse()
 
--- [[ FUNÃ‡Ã•ES UTILITÃRIAS ]] --
+-- [[ MAPA DE ÍCONES PADRÃO ]] --
+local ICON_MAP = {
+    ["house"] = "rbxassetid://7072706663",
+    ["settings"] = "rbxassetid://7072721682",
+    ["user"] = "rbxassetid://7072724418",
+    ["combat"] = "rbxassetid://7072882435",
+    ["cloud"] = "rbxassetid://7072706148",
+    ["folder"] = "rbxassetid://7072706503"
+}
+
+-- [[ FUNÇÕES UTILITÁRIAS ]] --
 local function Ripple(obj)
     obj.ClipsDescendants = true
     obj.MouseButton1Click:Connect(function()
         local ripple = Instance.new("Frame")
+        ripple.Name = "Ripple"
         ripple.Parent = obj
-        ripple.BackgroundColor3 = Color3.new(1,1,1)
-        ripple.BackgroundTransparency = 0.7
-        ripple.BorderSizePixel = 0
-        ripple.ZIndex = 10
-        ripple.Size = UDim2.new(0,0,0,0)
+        ripple.BackgroundColor3 = Color3.new(1, 1, 1)
+        ripple.BackgroundTransparency = 0.6
+        ripple.Size = UDim2.new(0, 0, 0, 0)
         ripple.Position = UDim2.new(0, mouse.X - obj.AbsolutePosition.X, 0, mouse.Y - obj.AbsolutePosition.Y)
-        ripple:TweenSizeAndPosition(
-            UDim2.new(0,300,0,300),
-            UDim2.new(0.5,-150,0.5,-150),
-            Enum.EasingDirection.Out,
-            Enum.EasingStyle.Quad,
-            0.5
-        )
-        TweenService:Create(ripple, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-        task.delay(0.5, function() ripple:Destroy() end)
+        
+        local corner = Instance.new("UICorner", ripple)  
+        corner.CornerRadius = UDim.new(1, 0)  
+          
+        ripple:TweenSizeAndPosition(UDim2.new(0, 200, 0, 200), UDim2.new(0.5, -100, 0.5, -100), "Out", "Quad", 0.5)  
+        TweenService:Create(ripple, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()  
+        task.wait(0.5)  
+        ripple:Destroy()  
     end)
 end
 
-local function MakeDraggable(bar, frame)
-    local dragging, dragStart, startPos
-    bar.InputBegan:Connect(function(input)
+local function MakeDraggable(topbar, object)
+    local dragging, dragInput, dragStart, startPos
+    topbar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
-            startPos = frame.Position
+            startPos = object.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
+            object.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end)
-    UserInputService.InputEnded:Connect(function()
-        dragging = false
     end)
 end
 
--- [[ WINDOW ]] --
+-- [[ SISTEMA DE JANELA ]] --
 function luayV2:Window(config)
-    local Window = {}
-    Window.Color = config.Color or Color3.fromRGB(0,170,255)
-    Window.Title = config.Name or "LUAY"
+    local Window = {
+        MainColor = config.Color or Color3.fromRGB(0, 170, 255),
+        Title = config.Name or "LUAY V2",
+        CurrentTab = nil
+    }
 
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
-    ScreenGui.Name = "luayV2_" .. HttpService:GenerateGUID(false)
+    ScreenGui.Name = "luay_" .. HttpService:GenerateGUID(false)
 
+    -- Janela Principal (Tamanho Reduzido: 300x350)
     local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0, 260, 0, 320)
-    Main.Position = UDim2.new(0.5, -130, 0.5, -160)
-    Main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+    Main.Size = UDim2.new(0, 300, 0, 350)
+    Main.Position = UDim2.new(0.5, -150, 0.5, -175)
+    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     Main.BorderSizePixel = 0
-    Main.ClipsDescendants = true
 
-    -- Barra lateral
-    local SideBar = Instance.new("Frame", Main)
-    SideBar.Size = UDim2.new(0, 6, 1, 0)
-    SideBar.BackgroundColor3 = Window.Color
-    SideBar.BorderSizePixel = 0
+    -- Barra Lateral Esquerda de Destaque (Colorida)
+    local LeftAccent = Instance.new("Frame", Main)
+    LeftAccent.Size = UDim2.new(0, 3, 1, 0)
+    LeftAccent.BackgroundColor3 = Window.MainColor
+    LeftAccent.BorderSizePixel = 0
+    LeftAccent.ZIndex = 5
 
-    -- TopBar
+    -- Barra Superior
     local TopBar = Instance.new("Frame", Main)
-    TopBar.Size = UDim2.new(1, 0, 0, 38)
-    TopBar.BackgroundColor3 = Color3.fromRGB(22,22,22)
+    TopBar.Size = UDim2.new(1, 0, 0, 35)
+    TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     TopBar.BorderSizePixel = 0
 
-    local TopLine = Instance.new("Frame", TopBar)
-    TopLine.Size = UDim2.new(1,0,0,3)
-    TopLine.Position = UDim2.new(0,0,1,-3)
-    TopLine.BackgroundColor3 = Window.Color
-    TopLine.BorderSizePixel = 0
-
     local Title = Instance.new("TextLabel", TopBar)
-    Title.Size = UDim2.new(1,-60,1,0)
-    Title.Position = UDim2.new(0,10,0,0)
     Title.Text = Window.Title:upper()
-    Title.TextColor3 = Color3.new(1,1,1)
-    Title.Font = Enum.Font.Code
-    Title.TextSize = 14
-    Title.TextXAlignment = Left
-    Title.BackgroundTransparency = 1
+    Title.Size = UDim2.new(1, -60, 1, 0)
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = "Code"; Title.TextSize = 14; Title.TextXAlignment = "Left"; Title.BackgroundTransparency = 1
 
-    local Close = Instance.new("TextButton", TopBar)
-    Close.Size = UDim2.new(0,30,0,30)
-    Close.Position = UDim2.new(1,-35,0,4)
-    Close.Text = "X"
-    Close.Font = Enum.Font.Code
-    Close.TextSize = 14
-    Close.TextColor3 = Color3.fromRGB(255,80,80)
-    Close.BackgroundTransparency = 1
-    Close.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
+    local CloseBtn = Instance.new("TextButton", TopBar)
+    CloseBtn.Size = UDim2.new(0, 30, 0, 35)
+    CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+    CloseBtn.Text = "×"; CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80); CloseBtn.Font = "GothamBold"; CloseBtn.TextSize = 20; CloseBtn.BackgroundTransparency = 1
+    CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
     MakeDraggable(TopBar, Main)
 
-    -- Container
+    -- Sidebar (Abas)
+    local Sidebar = Instance.new("ScrollingFrame", Main)
+    Sidebar.Size = UDim2.new(0, 45, 1, -40)
+    Sidebar.Position = UDim2.new(0, 5, 0, 40)
+    Sidebar.BackgroundTransparency = 1; Sidebar.ScrollBarThickness = 0
+    local SideLayout = Instance.new("UIListLayout", Sidebar)
+    SideLayout.Padding = UDim.new(0, 8); SideLayout.HorizontalAlignment = "Center"
+
+    -- Container Principal
     local Container = Instance.new("Frame", Main)
-    Container.Size = UDim2.new(1,-20,1,-55)
-    Container.Position = UDim2.new(0,14,0,45)
+    Container.Size = UDim2.new(1, -60, 1, -45)
+    Container.Position = UDim2.new(0, 55, 0, 40)
     Container.BackgroundTransparency = 1
 
-    -- Barra inferior colorida
-    local BottomBar = Instance.new("Frame", Main)
-    BottomBar.Size = UDim2.new(1,0,0,4)
-    BottomBar.Position = UDim2.new(0,0,1,-4)
-    BottomBar.BackgroundColor3 = Window.Color
-    BottomBar.BorderSizePixel = 0
+    -- [[ CRIAÇÃO DE ABAS ]] --
+    function Window:Area(name, iconName)
+        local AreaFrame = Instance.new("ScrollingFrame", Container)
+        AreaFrame.Size = UDim2.new(1, 0, 1, 0)
+        AreaFrame.BackgroundTransparency = 1; AreaFrame.Visible = false; AreaFrame.ScrollBarThickness = 2
+        AreaFrame.ScrollBarImageColor3 = Window.MainColor; AreaFrame.AutomaticCanvasSize = "Y"
+        Instance.new("UIListLayout", AreaFrame).Padding = UDim.new(0, 5)
 
-    function Window:Button(text, callback)
-        local btn = Instance.new("TextButton", Container)
-        btn.Size = UDim2.new(1,0,0,32)
-        btn.BackgroundColor3 = Color3.fromRGB(25,25,25)
-        btn.BorderSizePixel = 0
-        btn.Text = "  "..text
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.Font = Enum.Font.Code
-        btn.TextSize = 13
-        btn.TextXAlignment = Left
-        Ripple(btn)
-        btn.MouseButton1Click:Connect(callback)
-        return btn
+        local TabBtn = Instance.new("ImageButton", Sidebar)
+        TabBtn.Size = UDim2.new(0, 32, 0, 32)
+        TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        TabBtn.Image = ICON_MAP[iconName] or iconName or ICON_MAP["house"]
+        TabBtn.ImageColor3 = Color3.fromRGB(150, 150, 150)
+        TabBtn.BorderSizePixel = 0 -- Quadrado
+
+        local function Select()
+            for _, v in pairs(Container:GetChildren()) do v.Visible = false end
+            for _, v in pairs(Sidebar:GetChildren()) do 
+                if v:IsA("ImageButton") then 
+                    TweenService:Create(v, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(150, 150, 150), BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play() 
+                end 
+            end
+            AreaFrame.Visible = true
+            TweenService:Create(TabBtn, TweenInfo.new(0.3), {ImageColor3 = Window.MainColor, BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play()
+        end
+
+        TabBtn.MouseButton1Click:Connect(Select)
+
+        if not Window.CurrentTab then
+            Window.CurrentTab = AreaFrame
+            Select()
+        end
+
+        local Elements = {}
+
+        function Elements:Button(text, callback)
+            local btn = Instance.new("TextButton", AreaFrame)
+            btn.Size = UDim2.new(0.95, 0, 0, 30)
+            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            btn.Text = " " .. text:upper()
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.Font = "Code"; btn.TextSize = 12; btn.TextXAlignment = "Left"; btn.BorderSizePixel = 0
+            Ripple(btn)
+            btn.MouseButton1Click:Connect(callback)
+            return btn
+        end
+
+        function Elements:Toggle(text, callback)
+            local state = false
+            local tBtn = Instance.new("TextButton", AreaFrame)
+            tBtn.Size = UDim2.new(0.95, 0, 0, 32)
+            tBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            tBtn.Text = "  " .. text; tBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            tBtn.Font = "Code"; tBtn.TextSize = 12; tBtn.TextXAlignment = "Left"; tBtn.BorderSizePixel = 0
+            
+            local indicator = Instance.new("Frame", tBtn)
+            indicator.Size = UDim2.new(0, 4, 1, 0)
+            indicator.Position = UDim2.new(1, -4, 0, 0)
+            indicator.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            indicator.BorderSizePixel = 0
+
+            tBtn.MouseButton1Click:Connect(function()
+                state = not state
+                TweenService:Create(indicator, TweenInfo.new(0.2), {BackgroundColor3 = state and Window.MainColor or Color3.fromRGB(50, 50, 50)}):Play()
+                tBtn.TextColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(180, 180, 180)
+                callback(state)
+            end)
+        end
+
+        function Elements:Slider(text, min, max, default, callback)
+            local sFrame = Instance.new("Frame", AreaFrame)
+            sFrame.Size = UDim2.new(0.95, 0, 0, 40)
+            sFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); sFrame.BorderSizePixel = 0
+            
+            local label = Instance.new("TextLabel", sFrame)
+            label.Text = " " .. text .. ": " .. default; label.Size = UDim2.new(1, 0, 0, 20)
+            label.BackgroundTransparency = 1; label.TextColor3 = Color3.new(1,1,1); label.Font = "Code"; label.TextSize = 11; label.TextXAlignment = "Left"
+            
+            local bar = Instance.new("Frame", sFrame)
+            bar.Size = UDim2.new(0.9, 0, 0, 2); bar.Position = UDim2.new(0.05, 0, 0.75, 0)
+            bar.BackgroundColor3 = Color3.fromRGB(50, 50, 50); bar.BorderSizePixel = 0
+            
+            local fill = Instance.new("Frame", bar)
+            fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0); fill.BackgroundColor3 = Window.MainColor; fill.BorderSizePixel = 0
+
+            local dragging = false
+            local function update(input)
+                local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                local val = math.floor(min + (max - min) * pos)
+                fill.Size = UDim2.new(pos, 0, 1, 0)
+                label.Text = " " .. text .. ": " .. val
+                callback(val)
+            end
+            sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true update(i) end end)
+            UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i) end end)
+            UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+        end
+
+        return Elements
     end
 
     return Window
