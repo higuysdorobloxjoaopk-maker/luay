@@ -495,7 +495,7 @@ function luayV2:Window(Config)
             end)
         end
 
-        -- [[ SLIDER ]]
+        -- [[ SLIDER MOBILE-FRIENDLY ]]
 function Elements:Slider(cfg)
     local Name = cfg.Name or "Slider"
     local Min = cfg.Min or 0
@@ -503,75 +503,89 @@ function Elements:Slider(cfg)
     local Value = cfg.Placeholder or Min
 
     Value = math.clamp(Value, Min, Max)
-
-    -- salva valor inicial
     luayV2.Values[Name] = Value
 
-    -- container
-    local Holder = Instance.new("Frame", AreaFrame)
-    Holder.Size = UDim2.new(0.96, 0, 0, 45)
-    Holder.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    Holder.BorderSizePixel = 0
-    Instance.new("UICorner", Holder).CornerRadius = UDim.new(0, 4)
+    -- Container
+    local SliderFrame = Instance.new("Frame", AreaFrame)
+    SliderFrame.Size = UDim2.new(0.96, 0, 0, 45)
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    SliderFrame.BorderSizePixel = 0
+    local uic = Instance.new("UICorner", SliderFrame)
+    uic.CornerRadius = UDim.new(0, 4)
 
-    -- label do nome
-    local Title = Instance.new("TextLabel", Holder)
+    -- Título
+    local Title = Instance.new("TextLabel", SliderFrame)
     Title.Size = UDim2.new(1, -50, 0, 18)
     Title.Position = UDim2.new(0, 0, 0, 0)
     Title.BackgroundTransparency = 1
-    Title.Text = Name
     Title.TextColor3 = Color3.fromRGB(220,220,220)
     Title.Font = Enum.Font.Code
-    Title.TextSize = 11
+    Title.TextSize = 12
     Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Text = Name
 
-    -- valor de texto
-    local ValueLabel = Instance.new("TextLabel", Holder)
+    -- Valor numérico
+    local ValueLabel = Instance.new("TextLabel", SliderFrame)
     ValueLabel.Size = UDim2.new(0, 50, 0, 18)
     ValueLabel.Position = UDim2.new(1, -50, 0, 0)
     ValueLabel.BackgroundTransparency = 1
-    ValueLabel.TextColor3 = Color3.fromRGB(0,255,150)
+    ValueLabel.TextColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
     ValueLabel.Font = Enum.Font.Code
-    ValueLabel.TextSize = 11
+    ValueLabel.TextSize = 12
     ValueLabel.Text = tostring(Value)
 
-    -- barra
-    local Bar = Instance.new("Frame", Holder)
+    -- Barra
+    local Bar = Instance.new("Frame", SliderFrame)
     Bar.Size = UDim2.new(1, -10, 0, 6)
     Bar.Position = UDim2.new(0, 5, 0, 26)
     Bar.BackgroundColor3 = Color3.fromRGB(45,45,45)
     Instance.new("UICorner", Bar).CornerRadius = UDim.new(1,0)
 
+    -- Preenchimento
     local Fill = Instance.new("Frame", Bar)
-    Fill.Size = UDim2.new((Value - Min)/(Max - Min), 0, 1, 0)
-    Fill.BackgroundColor3 = Color3.fromRGB(0,255,150)
+    Fill.Size = UDim2.new((Value-Min)/(Max-Min), 0, 1, 0)
+    Fill.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
     Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
 
-    -- interação
+    -- Bolinha/handle
+    local Handle = Instance.new("Frame", Bar)
+    Handle.Size = UDim2.new(0, 14, 0, 14)
+    Handle.AnchorPoint = Vector2.new(0.5,0.5)
+    Handle.Position = UDim2.new((Value-Min)/(Max-Min), 0, 0.5, 0)
+    Handle.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
+    Instance.new("UICorner", Handle).CornerRadius = UDim.new(1,0)
+
+    -- Mobile & Desktop input
     local UIS = game:GetService("UserInputService")
     local dragging = false
 
-    Bar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
+    local function updateSlider(inputX)
+        local relative = math.clamp((inputX - Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
+        Value = math.floor(Min + (Max-Min)*relative)
+        Fill.Size = UDim2.new(relative,0,1,0)
+        Handle.Position = UDim2.new(relative,0,0.5,0)
+        ValueLabel.Text = tostring(Value)
+        luayV2.Values[Name] = Value
+    end
 
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
+    local function startDrag(input)
+        dragging = true
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            updateSlider(input.Position.X)
         end
-    end)
+    end
 
-    UIS.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local percent = math.clamp((input.Position.X - Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X, 0, 1)
-            Value = math.floor(Min + (Max - Min)*percent)
-            Fill.Size = UDim2.new(percent, 0, 1, 0)
-            ValueLabel.Text = tostring(Value)
-            luayV2.Values[Name] = Value
+    local function stopDrag(input)
+        dragging = false
+    end
+
+    Bar.InputBegan:Connect(startDrag)
+    Bar.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input.Position.X)
         end
     end)
+    UIS.InputEnded:Connect(stopDrag)
 end
 
         -- [[ LABEL ATUALIZÁVEL ]] --
