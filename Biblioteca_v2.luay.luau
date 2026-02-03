@@ -495,7 +495,7 @@ function luayV2:Window(Config)
             end)
         end
 
-        -- [[ SLIDER MOBILE-FRIENDLY ]]
+        -- [[ SLIDER MOBILE-FRIENDLY COM HITBOX MAIOR ]]
 function Elements:Slider(cfg)
     local Name = cfg.Name or "Slider"
     local Min = cfg.Min or 0
@@ -510,8 +510,7 @@ function Elements:Slider(cfg)
     SliderFrame.Size = UDim2.new(0.96, 0, 0, 45)
     SliderFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
     SliderFrame.BorderSizePixel = 0
-    local uic = Instance.new("UICorner", SliderFrame)
-    uic.CornerRadius = UDim.new(0, 4)
+    Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 4)
 
     -- Título
     local Title = Instance.new("TextLabel", SliderFrame)
@@ -547,15 +546,23 @@ function Elements:Slider(cfg)
     Fill.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
     Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
 
-    -- Bolinha/handle
-    local Handle = Instance.new("Frame", Bar)
-    Handle.Size = UDim2.new(0, 14, 0, 14)
+    -- Bolinha/handle com HITBOX maior
+    local Handle = Instance.new("TextButton", Bar)
+    Handle.Size = UDim2.new(0, 14, 0, 14) -- visual da bolinha
     Handle.AnchorPoint = Vector2.new(0.5,0.5)
     Handle.Position = UDim2.new((Value-Min)/(Max-Min), 0, 0.5, 0)
     Handle.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
+    Handle.AutoButtonColor = false
     Instance.new("UICorner", Handle).CornerRadius = UDim.new(1,0)
 
-    -- Mobile & Desktop input
+    -- HITBOX maior (Frame transparente)
+    local Hitbox = Instance.new("TextButton", Bar)
+    Hitbox.Size = UDim2.new(0, 40, 0, 40) -- aumenta a área de clique
+    Hitbox.AnchorPoint = Vector2.new(0.5,0.5)
+    Hitbox.Position = Handle.Position
+    Hitbox.BackgroundTransparency = 1
+    Hitbox.AutoButtonColor = false
+
     local UIS = game:GetService("UserInputService")
     local dragging = false
 
@@ -564,6 +571,7 @@ function Elements:Slider(cfg)
         Value = math.floor(Min + (Max-Min)*relative)
         Fill.Size = UDim2.new(relative,0,1,0)
         Handle.Position = UDim2.new(relative,0,0.5,0)
+        Hitbox.Position = Handle.Position
         ValueLabel.Text = tostring(Value)
         luayV2.Values[Name] = Value
     end
@@ -579,8 +587,8 @@ function Elements:Slider(cfg)
         dragging = false
     end
 
-    Bar.InputBegan:Connect(startDrag)
-    Bar.InputChanged:Connect(function(input)
+    Hitbox.InputBegan:Connect(startDrag)
+    UIS.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             updateSlider(input.Position.X)
         end
