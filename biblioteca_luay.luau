@@ -456,43 +456,59 @@ function luayV2:Window(config)
 
         -- ADVANCED LOGS
         function Elements:Logs(height)
-            local logFrame = Instance.new("ScrollingFrame")
-            logFrame.Size = UDim2.new(0.95, 0, 0, height or 100)
-            logFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-            logFrame.BorderSizePixel = 1
-            logFrame.BorderColor3 = Color3.fromRGB(30, 30, 30)
-            logFrame.ScrollBarThickness = 2
-            logFrame.ScrollBarImageColor3 = mainColor
-            logFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-            logFrame.Parent = AreaFrame
+    local logLib = {}
 
-            local logLayout = Instance.new("UIListLayout")
-            logLayout.Parent = logFrame
-            logLayout.Padding = UDim.new(0, 3)
+    local logFrame = Instance.new("ScrollingFrame")
+    logFrame.Size = UDim2.new(1, -12, 0, height or 150)
+    logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    logFrame.ScrollBarImageTransparency = 0
+    logFrame.ScrollBarThickness = 6
+    logFrame.BackgroundTransparency = 1
+    logFrame.BorderSizePixel = 0
+    logFrame.Parent = Container
 
-            local logLib = {}
-            function logLib:Log(msg, color)
-                local l = Instance.new("TextLabel")
-                l.Size = UDim2.new(1, -10, 0, 18)
-                l.BackgroundTransparency = 1
-                l.Text = " [" .. os.date("%X") .. "] " .. msg
-                l.TextColor3 = color or Color3.fromRGB(200, 200, 200)
-                l.Font = Enum.Font.Code
-                l.TextSize = 10
-                l.TextXAlignment = Enum.TextXAlignment.Left
-                l.Parent = logFrame
-                logFrame.CanvasPosition = Vector2.new(0, logFrame.AbsoluteCanvasSize.Y)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 6)
+    padding.PaddingBottom = UDim.new(0, 6)
+    padding.PaddingLeft = UDim.new(0, 6)
+    padding.PaddingRight = UDim.new(0, 6)
+    padding.Parent = logFrame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = logFrame
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        logFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
+        logFrame.CanvasPosition = Vector2.new(0, math.max(0, logFrame.CanvasSize.Y.Offset - logFrame.AbsoluteWindowSize.Y))
+    end)
+
+    function logLib:Log(text, color)
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, 18)
+        label.AutomaticSize = Enum.AutomaticSize.Y
+        label.BackgroundTransparency = 1
+        label.TextWrapped = true
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.TextYAlignment = Enum.TextYAlignment.Top
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.TextColor3 = color or Color3.fromRGB(220, 220, 220)
+        label.Text = tostring(text)
+        label.LayoutOrder = #logFrame:GetChildren()
+        label.Parent = logFrame
+    end
+
+    function logLib:Clear()
+        for _, v in ipairs(logFrame:GetChildren()) do
+            if v:IsA("TextLabel") then
+                v:Destroy()
             end
-
-            function logLib:Clear()
-                for _, v in pairs(logFrame:GetChildren()) do
-                    if v:IsA("TextLabel") then v:Destroy() end
-                end
-            end
-
-            return logLib
         end
+    end
 
+    return logLib
+end
         -- PLAYER SELECTOR
         function Elements:PlayerSelector(text, callback)
             local selectedPlayer = nil
@@ -614,22 +630,33 @@ function luayV2:Window(config)
 
     -- Theme Logic
     function Lib:SetColor(newColor)
-        mainColor = newColor
-        SideAccent.BackgroundColor3 = newColor
-        MenuAccent.BackgroundColor3 = newColor
-        SubtitleLabel.TextColor3 = newColor
-        SaveData._MainColorR = newColor.r
-        SaveData._MainColorG = newColor.g
-        SaveData._MainColorB = newColor.b
-        if internalAutoSave then SaveToFile() end
+    mainColor = newColor
+
+    SideAccent.BackgroundColor3 = newColor
+    MenuAccent.BackgroundColor3 = newColor
+    SubtitleLabel.TextColor3 = newColor
+
+    for _, obj in ipairs(ScreenGui:GetDescendants()) do
+        if obj:IsA("Frame") and obj.Name == "Accent" then
+            obj.BackgroundColor3 = newColor
+        elseif obj:IsA("ScrollingFrame") then
+            obj.ScrollBarImageColor3 = newColor
+        end
     end
+end
 
     function Lib:AutoSaveLuay(v) internalAutoSave = v end
-    function Lib:GetThemes() 
-        local names = {}
-        for n, _ in pairs(ColorPresets) do table.insert(names, n) end
-        return names, ColorPresets
+    function Lib:GetThemes()
+    local names = {}
+
+    for name in pairs(ColorPresets) do
+        table.insert(names, name)
     end
+
+    table.sort(names)
+
+    return names, ColorPresets
+end
 
     return Lib
 end
