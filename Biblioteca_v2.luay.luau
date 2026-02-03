@@ -1,5 +1,5 @@
 -- [[ luayV2 - THE LEVIATHAN CORE | FULL UNABRIDGED VERSION ]] --
--- [[ DEVELOPED BY JOAOPK / LEVIATHAN ]] --
+-- [[ DEVELOPED BY JOAOPK]] --
 
 local luayV2 = {}
 
@@ -164,7 +164,7 @@ function luayV2:Window(Config)
         ActiveTab = nil,
         Minimized = false,
         Closed = false,
-        Size = UDim2.new(0, 230, 0, 355), -- TAMANHO PADRÃO EXIGIDO
+        Size = UDim2.new(0, 250, 0, 345), -- TAMANHO PADRÃO EXIGIDO
         FileName = (Config.Name or "Leviathan") .. "_Config.json"
     }
 
