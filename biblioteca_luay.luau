@@ -454,61 +454,6 @@ function luayV2:Window(config)
             task.spawn(function() callback(saved) end)
         end
 
-        -- ADVANCED LOGS
-        function Elements:Logs(height)
-    local logLib = {}
-
-    local logFrame = Instance.new("ScrollingFrame")
-    logFrame.Size = UDim2.new(1, -12, 0, height or 150)
-    logFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    logFrame.ScrollBarImageTransparency = 0
-    logFrame.ScrollBarThickness = 6
-    logFrame.BackgroundTransparency = 1
-    logFrame.BorderSizePixel = 0
-    logFrame.Parent = Container
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 6)
-    padding.PaddingBottom = UDim.new(0, 6)
-    padding.PaddingLeft = UDim.new(0, 6)
-    padding.PaddingRight = UDim.new(0, 6)
-    padding.Parent = logFrame
-
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 6)
-    layout.Parent = logFrame
-
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        logFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
-        logFrame.CanvasPosition = Vector2.new(0, math.max(0, logFrame.CanvasSize.Y.Offset - logFrame.AbsoluteWindowSize.Y))
-    end)
-
-    function logLib:Log(text, color)
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 18)
-        label.AutomaticSize = Enum.AutomaticSize.Y
-        label.BackgroundTransparency = 1
-        label.TextWrapped = true
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.TextYAlignment = Enum.TextYAlignment.Top
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 13
-        label.TextColor3 = color or Color3.fromRGB(220, 220, 220)
-        label.Text = tostring(text)
-        label.LayoutOrder = #logFrame:GetChildren()
-        label.Parent = logFrame
-    end
-
-    function logLib:Clear()
-        for _, v in ipairs(logFrame:GetChildren()) do
-            if v:IsA("TextLabel") then
-                v:Destroy()
-            end
-        end
-    end
-
-    return logLib
-end
         -- PLAYER SELECTOR
         function Elements:PlayerSelector(text, callback)
             local selectedPlayer = nil
@@ -628,37 +573,85 @@ end
         return Elements
     end
 
-    -- Theme Logic
-    function Lib:SetColor(newColor)
-    mainColor = newColor
+    -- lista
+function Elements:Section(title, callback)
+    local opened = false
 
-    SideAccent.BackgroundColor3 = newColor
-    MenuAccent.BackgroundColor3 = newColor
-    SubtitleLabel.TextColor3 = newColor
+    -- Frame principal
+    local sectionFrame = Instance.new("Frame")
+    sectionFrame.Size = UDim2.new(1, -12, 0, 40)
+    sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
+    sectionFrame.BackgroundTransparency = 1
+    sectionFrame.Parent = Container
 
-    for _, obj in ipairs(ScreenGui:GetDescendants()) do
-        if obj:IsA("Frame") and obj.Name == "Accent" then
-            obj.BackgroundColor3 = newColor
-        elseif obj:IsA("ScrollingFrame") then
-            obj.ScrollBarImageColor3 = newColor
+    -- Botão do header
+    local header = Instance.new("TextButton")
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    header.BorderSizePixel = 0
+    header.AutoButtonColor = false
+    header.Font = Enum.Font.GothamBold
+    header.TextSize = 14
+    header.TextXAlignment = Enum.TextXAlignment.Left
+    header.TextColor3 = Color3.fromRGB(230,230,230)
+    header.Text = "   "..title
+    header.Parent = sectionFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = header
+
+    -- Ícone > ^
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 30, 1, 0)
+    arrow.Position = UDim2.new(1, -30, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Font = Enum.Font.GothamBold
+    arrow.TextSize = 14
+    arrow.TextColor3 = Color3.fromRGB(200,200,200)
+    arrow.Text = ">"
+    arrow.Parent = header
+
+    -- Container interno
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -12, 0, 0)
+    content.Position = UDim2.new(0, 6, 0, 45)
+    content.AutomaticSize = Enum.AutomaticSize.Y
+    content.BackgroundTransparency = 1
+    content.Visible = false
+    content.Parent = sectionFrame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = content
+
+    -- Toggle abrir / fechar
+    header.MouseButton1Click:Connect(function()
+        opened = not opened
+        content.Visible = opened
+        arrow.Text = opened and "^" or ">"
+    end)
+
+    -- Sub-elements usam o mesmo sistema da Area
+    local SectionElements = {}
+
+    setmetatable(SectionElements, {
+        __index = function(_, key)
+            if Elements[key] then
+                return function(_, ...)
+                    local oldContainer = Container
+                    Container = content
+                    local result = Elements[key](Elements, ...)
+                    Container = oldContainer
+                    return result
+                end
+            end
         end
+    })
+
+    if callback then
+        callback(SectionElements)
     end
-end
-
-    function Lib:AutoSaveLuay(v) internalAutoSave = v end
-    function Lib:GetThemes()
-    local names = {}
-
-    for name in pairs(ColorPresets) do
-        table.insert(names, name)
-    end
-
-    table.sort(names)
-
-    return names, ColorPresets
-end
-
-    return Lib
 end
 
 return luayV2
