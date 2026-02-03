@@ -1,4 +1,4 @@
--- [[ luayV2 - THE LEVIATHAN CORE ]] --
+-- [[ luayV2 - THE LEVIATHAN CORE (EXTENDED) ]] --
 local luayV2 = {}
 
 local TweenService = game:GetService("TweenService")
@@ -86,7 +86,9 @@ function luayV2:Window(config)
         Size = config.Size or UDim2.new(0, 450, 0, 500),
         Running = true,
         Data = {},
-        AutoSave = false
+        AutoSave = false,
+        Minimized = false,
+        FileName = (config.Name or "Leviathan") .. "_Config.json"
     }
 
     local ScreenGui = Instance.new("ScreenGui", CoreGui)
@@ -96,6 +98,7 @@ function luayV2:Window(config)
     Main.Size = Window.Size
     Main.Position = UDim2.new(0.5, -Main.Size.X.Offset/2, 0.5, -Main.Size.Y.Offset/2)
     Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Main.BorderSizePixel = 0
+    Main.ClipsDescendants = true
 
     local TopBar = Instance.new("Frame", Main)
     TopBar.Size = UDim2.new(1, 0, 0, 45); TopBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18); TopBar.BorderSizePixel = 0
@@ -113,9 +116,19 @@ function luayV2:Window(config)
     local Subtitle = Instance.new("TextLabel", TopBar)
     Subtitle.Text = "  SELECT AREA"; Subtitle.Size = UDim2.new(0.5, 0, 0, 15); Subtitle.Position = UDim2.new(0, 0, 0, 28); Subtitle.TextColor3 = Window.MainColor; Subtitle.Font = "Code"; Subtitle.TextSize = 10; Subtitle.BackgroundTransparency = 1; Subtitle.TextXAlignment = "Left"
 
+    -- Botões da TopBar (Fechar e Minimizar)
     local Close = Instance.new("TextButton", TopBar)
     Close.Size = UDim2.new(0, 45, 0, 45); Close.Position = UDim2.new(1, -45, 0, 0); Close.Text = "×"; Close.TextColor3 = Color3.fromRGB(255, 80, 80); Close.Font = "GothamBold"; Close.TextSize = 26; Close.BackgroundTransparency = 1
     Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+    local Minimize = Instance.new("TextButton", TopBar)
+    Minimize.Size = UDim2.new(0, 45, 0, 45); Minimize.Position = UDim2.new(1, -85, 0, 0); Minimize.Text = "-"; Minimize.TextColor3 = Color3.fromRGB(200, 200, 200); Minimize.Font = "GothamBold"; Minimize.TextSize = 26; Minimize.BackgroundTransparency = 1
+    
+    Minimize.MouseButton1Click:Connect(function()
+        Window.Minimized = not Window.Minimized
+        local targetSize = Window.Minimized and UDim2.new(0, Window.Size.X.Offset, 0, 45) or Window.Size
+        TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
+    end)
 
     local Sidebar = Instance.new("Frame", Main)
     Sidebar.Size = UDim2.new(0, 55, 1, -55); Sidebar.Position = UDim2.new(0, 8, 0, 55); Sidebar.BackgroundTransparency = 1
@@ -124,19 +137,37 @@ function luayV2:Window(config)
     local Container = Instance.new("Frame", Main)
     Container.Size = UDim2.new(1, -80, 1, -70); Container.Position = UDim2.new(0, 75, 0, 60); Container.BackgroundTransparency = 1; Container.ClipsDescendants = true
 
-    -- [[ FUNÇÃO RESIZE ADICIONADA ]] --
-    function Window:Resize(newX, newY)
-        Window.Size = UDim2.new(0, newX, 0, newY)
-        local info = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-        TweenService:Create(Main, info, {Size = Window.Size}):Play()
+    -- [[ PERSISTÊNCIA DE DADOS ]] --
+    function Window:SaveConfig()
+        local json = HttpService:JSONEncode(Window.Data)
+        if writefile then
+            pcall(function() writefile(Window.FileName, json) end)
+        end
     end
 
-    function Window:SetTheme(color)
-        Window.MainColor = color
-        AccentV.BackgroundColor3 = color; AccentH.BackgroundColor3 = color; Subtitle.TextColor3 = color
+    function Window:LoadConfig()
+        if isfile and isfile(Window.FileName) then
+            local success, content = pcall(function() return readfile(Window.FileName) end)
+            if success then
+                local data = HttpService:JSONDecode(content)
+                Window.Data = data
+                return data
+            end
+        end
+        return nil
+    end
+
+    function Window:Resize(newX, newY)
+        Window.Size = UDim2.new(0, newX, 0, newY)
+        if not Window.Minimized then
+            local info = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            TweenService:Create(Main, info, {Size = Window.Size}):Play()
+        end
     end
 
     function Window:Area(name, icon)
+        Window.Data[name] = Window.Data[name] or {}
+        
         local AreaFrame = Instance.new("ScrollingFrame", Container)
         AreaFrame.Size = UDim2.new(1, 0, 1, 0); AreaFrame.BackgroundTransparency = 1; AreaFrame.Visible = false; AreaFrame.BorderSizePixel = 0; AreaFrame.ScrollBarThickness = 2; AreaFrame.ScrollBarImageColor3 = Window.MainColor; AreaFrame.AutomaticCanvasSize = "Y"
         Instance.new("UIListLayout", AreaFrame).Padding = UDim.new(0, 8)
@@ -159,47 +190,79 @@ function luayV2:Window(config)
         end
 
         function Elements:Toggle(txt, def, cb)
-            local s = def or false
+            local saved = Window.Data[name][txt]
+            local s = (saved ~= nil and saved) or def or false
+            
             local t = Instance.new("TextButton", AreaFrame); t.Size = UDim2.new(0.97, 0, 0, 35); t.BackgroundColor3 = Color3.fromRGB(18, 18, 18); t.BorderSizePixel = 0; t.Text = "  " .. txt; t.TextColor3 = s and Color3.new(1,1,1) or Color3.fromRGB(150,150,150); t.Font = "Code"; t.TextSize = 13; t.TextXAlignment = "Left"
             local ind = Instance.new("Frame", t); ind.Size = UDim2.new(0, 16, 0, 16); ind.Position = UDim2.new(1, -24, 0.5, -8); ind.BackgroundColor3 = s and Window.MainColor or Color3.fromRGB(40,40,40); ind.BorderSizePixel = 0
-            t.MouseButton1Click:Connect(function()
-                s = not s; t.TextColor3 = s and Color3.new(1,1,1) or Color3.fromRGB(150,150,150)
-                TweenService:Create(ind, TweenInfo.new(0.2), {BackgroundColor3 = s and Window.MainColor or Color3.fromRGB(40,40,40)}):Play()
+            
+            local function update(val)
+                s = val
+                Window.Data[name][txt] = s
+                t.TextColor3 = s and Color3.new(1,1,1) or Color3.fromRGB(150,150,150)
+                TweenService:Create(ind, TweenInfo.new(0.25, Enum.EasingStyle.Quart), {BackgroundColor3 = s and Window.MainColor or Color3.fromRGB(40,40,40)}):Play()
                 cb(s)
-            end)
+                if Window.AutoSave then Window:SaveConfig() end
+            end
+
+            t.MouseButton1Click:Connect(function() update(not s) end)
+            if saved ~= nil then task.spawn(cb, s) end
         end
 
         function Elements:Slider(txt, min, max, def, cb)
+            local saved = Window.Data[name][txt]
+            local currentVal = saved or def
+            
             local sF = Instance.new("Frame", AreaFrame); sF.Size = UDim2.new(0.97, 0, 0, 50); sF.BackgroundColor3 = Color3.fromRGB(18,18,18); sF.BorderSizePixel = 0
-            local lab = Instance.new("TextLabel", sF); lab.Text = "  " .. txt .. ": " .. def; lab.Size = UDim2.new(1, 0, 0, 25); lab.TextColor3 = Color3.new(1,1,1); lab.Font = "Code"; lab.TextSize = 12; lab.BackgroundTransparency = 1; lab.TextXAlignment = "Left"
+            local lab = Instance.new("TextLabel", sF); lab.Text = "  " .. txt .. ": " .. currentVal; lab.Size = UDim2.new(1, 0, 0, 25); lab.TextColor3 = Color3.new(1,1,1); lab.Font = "Code"; lab.TextSize = 12; lab.BackgroundTransparency = 1; lab.TextXAlignment = "Left"
             local track = Instance.new("Frame", sF); track.Size = UDim2.new(0.85, 0, 0, 4); track.Position = UDim2.new(0.07, 0, 0.7, 0); track.BackgroundColor3 = Color3.fromRGB(45,45,45); track.BorderSizePixel = 0
-            local fill = Instance.new("Frame", track); fill.Size = UDim2.new((def-min)/(max-min), 0, 1, 0); fill.BackgroundColor3 = Window.MainColor; fill.BorderSizePixel = 0
+            local fill = Instance.new("Frame", track); fill.Size = UDim2.new((currentVal-min)/(max-min), 0, 1, 0); fill.BackgroundColor3 = Window.MainColor; fill.BorderSizePixel = 0
             local ball = Instance.new("TextButton", fill); ball.AnchorPoint = Vector2.new(0.5, 0.5); ball.Size = UDim2.new(0, 14, 0, 14); ball.Position = UDim2.new(1, 0, 0.5, 0); ball.BackgroundColor3 = Window.MainColor; ball.BorderSizePixel = 0; ball.Text = ""
-            local drag = false
-            local function up()
-                local p = math.clamp((mouse.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+            
+            local function update(p)
                 local v = math.floor(min + (max-min)*p)
-                fill.Size = UDim2.new(p, 0, 1, 0); lab.Text = "  " .. txt .. ": " .. v; cb(v)
+                currentVal = v
+                Window.Data[name][txt] = v
+                TweenService:Create(fill, TweenInfo.new(0.1), {Size = UDim2.new(p, 0, 1, 0)}):Play()
+                lab.Text = "  " .. txt .. ": " .. v
+                cb(v)
+                if Window.AutoSave then Window:SaveConfig() end
             end
+
+            local drag = false
             ball.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = true end end)
             UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end end)
-            UserInputService.InputChanged:Connect(function(i) if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then up() end end)
-            track.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then up() end end)
+            UserInputService.InputChanged:Connect(function(i) 
+                if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
+                    local p = math.clamp((mouse.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+                    update(p)
+                end 
+            end)
+            
+            if saved ~= nil then task.spawn(cb, currentVal) end
         end
 
-        function Elements:Logs(h)
-            local s = Instance.new("ScrollingFrame", AreaFrame); s.Size = UDim2.new(0.97, 0, 0, h or 150); s.BackgroundColor3 = Color3.new(0,0,0); s.BorderSizePixel = 0; s.ScrollBarThickness = 2; s.AutomaticCanvasSize = "Y"
-            local l = Instance.new("UIListLayout", s)
-            return {
-                Log = function(_, m, c)
-                    local t = Instance.new("TextLabel", s); t.Size = UDim2.new(1, -10, 0, 18); t.BackgroundTransparency = 1; t.Text = " > " .. m; t.TextColor3 = c or Color3.new(1,1,1); t.Font = "Code"; t.TextSize = 11; t.TextXAlignment = "Left"; s.CanvasPosition = Vector2.new(0, 9999)
-                end,
-                Clear = function() for _, v in pairs(s:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end end
-            }
+        function Elements:ToggleAutoSave(def)
+            Window.AutoSave = def or false
+            self:Toggle("Auto-Salvamento", Window.AutoSave, function(v)
+                Window.AutoSave = v
+                if v then Window:SaveConfig() end
+            end)
+        end
+
+        function Elements:SaveButton()
+            self:Button("Salvar Configurações", function()
+                Window:SaveConfig()
+                luayV2:Notify({Title = "Sistema", Text = "Configurações salvas com sucesso!", Duration = 3})
+            end)
         end
 
         return Elements
     end
+
+    -- Carregamento inicial discreto
+    Window:LoadConfig()
+    
     return Window
 end
 
