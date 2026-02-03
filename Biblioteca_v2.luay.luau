@@ -2,6 +2,7 @@
 -- [[ DEVELOPED BY JOAOPK]] --
 
 local luayV2 = {}
+luayV2.Values = {}
 
 -- [[ SERVIÇOS DO MOTOR ]] --
 local TweenService = game:GetService("TweenService")
