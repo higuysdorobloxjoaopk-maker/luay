@@ -554,4 +554,8 @@ function luayV2:Window(Config)
     return Window
 end
 
+function luayV2:GetValue(name)
+    return self.Values[name]
+end
+
 return luayV2
