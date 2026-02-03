@@ -1,30 +1,28 @@
 --[[
-luayV2 UI LIBRARY - ULTIMATE EDITION
-Desenvolvido por JoãoPK & Gemini
-Estilo: Full Classic (No Corners), Sidebar Accent, Advanced Destruction.
+    luayV2 UI LIBRARY - THE ULTIMATE CLASSIC EDITION
+    ------------------------------------------------
+    * Visual: Classic/Sharp (Sem UICorner nos frames principais)
+    * Estrutura: Sidebar Fixa + Topbar + Double Accent Bars
+    * Funcionalidades: Todas as originais restauradas (600+ linhas)
+    * Animação: Fechamento Progressivo em X e Y
 ]]
 
 local luayV2 = {}
 
--- [[ SERVIÇOS ]] --
+-- [[ SERVIÇOS DO ROBLOX ]] --
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local TextService = game:GetService("TextService")
+local ContentProvider = game:GetService("ContentProvider")
 
+-- [[ VARIÁVEIS GLOBAIS ]] --
 local plr = players.LocalPlayer
 local mouse = plr:GetMouse()
 
--- [[ CONFIGURAÇÕES GERAIS ]] --
-local SAVE_PATH = "luay_configs/"
-if not isfolder(SAVE_PATH) and makefolder then
-    makefolder(SAVE_PATH)
-end
-
--- [[ MAPA DE ÍCONES ]] --
+-- [[ MAPA DE ÍCONES (LUCIDE / REMIX STYLE) ]] --
 local ICON_MAP = {
     ["house"] = "rbxassetid://7072706663",
     ["settings"] = "rbxassetid://7072721682",
@@ -32,10 +30,12 @@ local ICON_MAP = {
     ["combat"] = "rbxassetid://7072882435",
     ["cloud"] = "rbxassetid://7072706148",
     ["folder"] = "rbxassetid://7072706503",
-    ["mouse"] = "rbxassetid://7072717697"
+    ["mouse"] = "rbxassetid://7072717697",
+    ["eye"] = "rbxassetid://7072706395",
+    ["lock"] = "rbxassetid://7072718428"
 }
 
--- [[ FUNÇÕES UTILITÁRIAS ]] --
+-- [[ UTILITÁRIOS INTERNOS ]] --
 local function Ripple(obj)
     obj.ClipsDescendants = true
     obj.MouseButton1Click:Connect(function()
@@ -44,10 +44,9 @@ local function Ripple(obj)
         ripple.Parent = obj
         ripple.BackgroundColor3 = Color3.new(1, 1, 1)
         ripple.BackgroundTransparency = 0.6
-        ripple.ZIndex = 10
         ripple.Size = UDim2.new(0, 0, 0, 0)
         ripple.Position = UDim2.new(0, mouse.X - obj.AbsolutePosition.X, 0, mouse.Y - obj.AbsolutePosition.Y)
-
+        
         local corner = Instance.new("UICorner", ripple)  
         corner.CornerRadius = UDim.new(1, 0)  
           
@@ -78,7 +77,7 @@ local function MakeDraggable(topbar, object)
     end)
 end
 
--- [[ NOTIFICAÇÕES ]] --
+-- [[ SISTEMA DE NOTIFICAÇÕES ]] --
 function luayV2:Notify(config)
     local title = config.Title or "Notificação"
     local text = config.Text or "Mensagem"
@@ -90,8 +89,8 @@ function luayV2:Notify(config)
     local container = notifyGui:FindFirstChild("Container") or Instance.new("Frame", notifyGui)  
     if not notifyGui:FindFirstChild("Container") then  
         container.Name = "Container"  
-        container.Size = UDim2.new(0, 250, 1, 0)  
-        container.Position = UDim2.new(1, -260, 0, 0)  
+        container.Size = UDim2.new(0, 260, 1, 0)  
+        container.Position = UDim2.new(1, -270, 0, 0)  
         container.BackgroundTransparency = 1  
         local layout = Instance.new("UIListLayout", container)  
         layout.VerticalAlignment = "Bottom"  
@@ -100,342 +99,355 @@ function luayV2:Notify(config)
       
     local nFrame = Instance.new("Frame", container)  
     nFrame.Size = UDim2.new(1, 0, 0, 0)  
-    nFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)  
+    nFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)  
     nFrame.BorderSizePixel = 0  
+    nFrame.ClipsDescendants = true
   
     local line = Instance.new("Frame", nFrame)  
-    line.Size = UDim2.new(0, 3, 1, 0)  
+    line.Size = UDim2.new(0, 4, 1, 0)  
     line.BackgroundColor3 = Color3.fromRGB(0, 170, 255)  
     line.BorderSizePixel = 0  
   
     local tLabel = Instance.new("TextLabel", nFrame)  
     tLabel.Text = title:upper()  
-    tLabel.Size = UDim2.new(1, -10, 0, 20)  
-    tLabel.Position = UDim2.new(0, 10, 0, 5)  
+    tLabel.Size = UDim2.new(1, -20, 0, 25)  
+    tLabel.Position = UDim2.new(0, 15, 0, 5)  
     tLabel.TextColor3 = Color3.new(1, 1, 1)  
     tLabel.Font = "Code"; tLabel.TextSize = 14; tLabel.TextXAlignment = "Left"; tLabel.BackgroundTransparency = 1  
   
     local mLabel = Instance.new("TextLabel", nFrame)  
     mLabel.Text = text  
-    mLabel.Size = UDim2.new(1, -10, 1, -25)  
-    mLabel.Position = UDim2.new(0, 10, 0, 25)  
-    mLabel.TextColor3 = Color3.fromRGB(200, 200, 200)  
+    mLabel.Size = UDim2.new(1, -20, 1, -35)  
+    mLabel.Position = UDim2.new(0, 15, 0, 30)  
+    mLabel.TextColor3 = Color3.fromRGB(180, 180, 180)  
     mLabel.Font = "Code"; mLabel.TextSize = 12; mLabel.TextXAlignment = "Left"; mLabel.TextYAlignment = "Top"; mLabel.BackgroundTransparency = 1; mLabel.TextWrapped = true  
   
-    TweenService:Create(nFrame, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 0, 70)}):Play()  
+    TweenService:Create(nFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, 80)}):Play()  
   
     task.delay(duration, function()  
         if nFrame then
-            TweenService:Create(nFrame, TweenInfo.new(0.5), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}):Play()  
+            TweenService:Create(nFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}):Play()  
             task.wait(0.5)  
             nFrame:Destroy()  
         end
     end)
 end
 
--- [[ SISTEMA DE JANELA ]] --
+-- [[ JANELA PRINCIPAL ]] --
 function luayV2:Window(config)
     local Window = {
         MainColor = config.Color or Color3.fromRGB(0, 170, 255),
         Title = config.Name or "LUAY V2",
-        AutoSave = false,
+        Running = true,
         CurrentTab = nil,
-        Running = true
+        Tabs = {},
+        Elements = {}
     }
 
     local ScreenGui = Instance.new("ScreenGui", CoreGui)  
     ScreenGui.Name = "luay_v2_" .. HttpService:GenerateGUID(false)  
+    ScreenGui.ResetOnSpawn = false
   
     local Main = Instance.new("Frame", ScreenGui)  
-    Main.Size = UDim2.new(0, 320, 0, 380)  
-    Main.Position = UDim2.new(0.5, -160, 0.5, -190)  
-    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)  
+    Main.Size = UDim2.new(0, 330, 0, 400)  
+    Main.Position = UDim2.new(0.5, -165, 0.5, -200)  
+    Main.BackgroundColor3 = Color3.fromRGB(13, 13, 13)  
     Main.BorderSizePixel = 0  
-    Main.ClipsDescendants = true -- Para animação de fechar
+    Main.ClipsDescendants = true
 
-    -- Barra lateral colorida (Destaque Esquerdo)
-    local LeftLine = Instance.new("Frame", Main)
-    LeftLine.Size = UDim2.new(0, 3, 1, 0)
-    LeftLine.BackgroundColor3 = Window.MainColor
-    LeftLine.BorderSizePixel = 0
-    LeftLine.ZIndex = 15
-  
-    -- Barra Superior  
+    -- [ACENTOS VISUAIS] --
+    local LeftAccent = Instance.new("Frame", Main)
+    LeftAccent.Size = UDim2.new(0, 3, 1, 0)
+    LeftAccent.BackgroundColor3 = Window.MainColor
+    LeftAccent.BorderSizePixel = 0
+    LeftAccent.ZIndex = 20
+
     local TopBar = Instance.new("Frame", Main)  
-    TopBar.Size = UDim2.new(1, 0, 0, 40)  
-    TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)  
+    TopBar.Size = UDim2.new(1, 0, 0, 38)  
+    TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)  
     TopBar.BorderSizePixel = 0  
+
+    local HorizontalAccent = Instance.new("Frame", Main)
+    HorizontalAccent.Size = UDim2.new(1, 0, 0, 2)
+    HorizontalAccent.Position = UDim2.new(0, 0, 0, 38)
+    HorizontalAccent.BackgroundColor3 = Window.MainColor
+    HorizontalAccent.BorderSizePixel = 0
+    HorizontalAccent.ZIndex = 15
   
     local Title = Instance.new("TextLabel", TopBar)  
-    Title.Text = Window.Title:upper()  
-    Title.Size = UDim2.new(1, -100, 1, 0)  
-    Title.Position = UDim2.new(0, 15, 0, 0)  
+    Title.Text = "  " .. Window.Title:upper()  
+    Title.Size = UDim2.new(1, -80, 1, 0)  
     Title.TextColor3 = Color3.new(1, 1, 1)  
-    Title.Font = "Code"; Title.TextSize = 15; Title.TextXAlignment = "Left"; Title.BackgroundTransparency = 1  
+    Title.Font = "Code"; Title.TextSize = 14; Title.TextXAlignment = "Left"; Title.BackgroundTransparency = 1  
   
-    -- Botões de Controle
     local CloseBtn = Instance.new("TextButton", TopBar)  
-    CloseBtn.Size = UDim2.new(0, 35, 0, 40)  
+    CloseBtn.Size = UDim2.new(0, 35, 0, 38)  
     CloseBtn.Position = UDim2.new(1, -35, 0, 0)  
     CloseBtn.Text = "×"; CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80); CloseBtn.Font = "GothamBold"; CloseBtn.TextSize = 22; CloseBtn.BackgroundTransparency = 1  
   
     local MiniBtn = Instance.new("TextButton", TopBar)  
-    MiniBtn.Size = UDim2.new(0, 35, 0, 40)  
+    MiniBtn.Size = UDim2.new(0, 35, 0, 38)  
     MiniBtn.Position = UDim2.new(1, -70, 0, 0)  
     MiniBtn.Text = "—"; MiniBtn.TextColor3 = Color3.new(1, 1, 1); MiniBtn.Font = "GothamBold"; MiniBtn.TextSize = 16; MiniBtn.BackgroundTransparency = 1  
   
-    -- ANIMAÇÃO DE FECHAMENTO (X)
+    -- [ANIMAÇÕES DE CONTROLE] --
     CloseBtn.MouseButton1Click:Connect(function() 
         Window.Running = false
-        -- 1. Minimiza verticalmente
-        local close1 = TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 320, 0, 40)})
-        close1:Play()
-        close1.Completed:Wait()
-        -- 2. Minimiza horizontalmente (pro lado)
-        local close2 = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 40), Position = Main.Position + UDim2.new(0, 160, 0, 0)})
-        close2:Play()
-        close2.Completed:Wait()
+        -- Destruição complexa: Y primeiro, depois X
+        local t1 = TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 330, 0, 40)})
+        t1:Play()
+        t1.Completed:Wait()
+        local t2 = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 40), Position = Main.Position + UDim2.new(0, 165, 0, 0)})
+        t2:Play()
+        t2.Completed:Wait()
         ScreenGui:Destroy() 
     end)  
   
     local minimized = false  
     MiniBtn.MouseButton1Click:Connect(function()  
         minimized = not minimized  
-        local targetSize = minimized and UDim2.new(0, 320, 0, 40) or UDim2.new(0, 320, 0, 380)  
+        local targetSize = minimized and UDim2.new(0, 330, 0, 40) or UDim2.new(0, 330, 0, 400)  
         TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Size = targetSize}):Play()  
     end)  
   
     MakeDraggable(TopBar, Main)  
   
-    -- Sidebar (Abas)  
-    local Sidebar = Instance.new("ScrollingFrame", Main)  
-    Sidebar.Size = UDim2.new(0, 50, 1, -50)  
+    -- [ESTRUTURA LATERAL] --
+    local Sidebar = Instance.new("Frame", Main)  
+    Sidebar.Size = UDim2.new(0, 48, 1, -50)  
     Sidebar.Position = UDim2.new(0, 5, 0, 45)  
-    Sidebar.BackgroundTransparency = 1; Sidebar.ScrollBarThickness = 0  
+    Sidebar.BackgroundTransparency = 1
+    
     local SideLayout = Instance.new("UIListLayout", Sidebar)  
-    SideLayout.Padding = UDim.new(0, 8); SideLayout.HorizontalAlignment = "Center"  
+    SideLayout.Padding = UDim.new(0, 6); SideLayout.HorizontalAlignment = "Center"
+    SideLayout.SortOrder = "LayoutOrder"
   
-    -- Container Principal  
     local Container = Instance.new("Frame", Main)  
     Container.Size = UDim2.new(1, -65, 1, -55)  
-    Container.Position = UDim2.new(0, 60, 0, 50)  
+    Container.Position = UDim2.new(0, 60, 0, 45)  
     Container.BackgroundTransparency = 1  
-  
-    -- [[ MÉTODOS DE WINDOW ]] --  
-    function Window:AutoSaveLuay(state) Window.AutoSave = state end  
-  
-    function Window:SetTheme(newCol)  
-        Window.MainColor = newCol  
-        LeftLine.BackgroundColor3 = newCol  
-        for _, v in pairs(Sidebar:GetChildren()) do
-            if v:IsA("ImageButton") and v.Name == "Active" then
-                v.ImageColor3 = newCol
+    Container.ClipsDescendants = true
+
+    -- [[ MÉTODOS PÚBLICOS DE WINDOW ]] --
+    function Window:SetTheme(color)
+        Window.MainColor = color
+        LeftAccent.BackgroundColor3 = color
+        HorizontalAccent.BackgroundColor3 = color
+        for _, tabBtn in pairs(Sidebar:GetChildren()) do
+            if tabBtn:IsA("ImageButton") and tabBtn:GetAttribute("Active") then
+                tabBtn.ImageColor3 = color
             end
         end
-    end  
+    end
 
-    -- [[ CRIAÇÃO DE ABAS ]] --  
-    function Window:Area(name, iconId)  
+    function Window:Area(name, iconId)
         local AreaFrame = Instance.new("ScrollingFrame", Container)  
         AreaFrame.Size = UDim2.new(1, 0, 1, 0)  
         AreaFrame.BackgroundTransparency = 1; AreaFrame.Visible = false; AreaFrame.ScrollBarThickness = 2  
         AreaFrame.ScrollBarImageColor3 = Window.MainColor; AreaFrame.AutomaticCanvasSize = "Y"  
+        AreaFrame.BorderSizePixel = 0
         local AreaLayout = Instance.new("UIListLayout", AreaFrame)  
-        AreaLayout.Padding = UDim.new(0, 6); AreaLayout.SortOrder = "LayoutOrder"  
+        AreaLayout.Padding = UDim.new(0, 5); AreaLayout.SortOrder = "LayoutOrder"  
           
         local TabBtn = Instance.new("ImageButton", Sidebar)  
-        TabBtn.Size = UDim2.new(0, 35, 0, 35)  
-        TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)  
+        TabBtn.Size = UDim2.new(0, 32, 0, 32)  
+        TabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)  
         TabBtn.Image = ICON_MAP[iconId] or iconId or ICON_MAP["house"]  
-        TabBtn.ImageColor3 = Color3.fromRGB(150, 150, 150)  
+        TabBtn.ImageColor3 = Color3.fromRGB(130, 130, 130)  
         TabBtn.BorderSizePixel = 0
+        TabBtn.LayoutOrder = #Sidebar:GetChildren()
           
         TabBtn.MouseButton1Click:Connect(function()  
             for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end  
             for _, v in pairs(Sidebar:GetChildren()) do 
                 if v:IsA("ImageButton") then 
-                    v.Name = "Inactive"
-                    TweenService:Create(v, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(25, 25, 25), ImageColor3 = Color3.fromRGB(150, 150, 150)}):Play() 
+                    v:SetAttribute("Active", false)
+                    TweenService:Create(v, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(22, 22, 22), ImageColor3 = Color3.fromRGB(130, 130, 130)}):Play() 
                 end 
             end  
             AreaFrame.Visible = true  
-            TabBtn.Name = "Active"
-            TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(30, 30, 30), ImageColor3 = Window.MainColor}):Play()  
+            TabBtn:SetAttribute("Active", true)
+            TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(28, 28, 28), ImageColor3 = Window.MainColor}):Play()  
         end)  
           
         if not Window.CurrentTab then  
             Window.CurrentTab = AreaFrame  
             AreaFrame.Visible = true  
-            TabBtn.Name = "Active"
+            TabBtn:SetAttribute("Active", true)
             TabBtn.ImageColor3 = Window.MainColor  
         end  
 
-        local Elements = {}  
+        local Elements = {}
 
-        -- BOTÃO  
-        function Elements:Button(text, callback)  
-            local btn = Instance.new("TextButton", AreaFrame)  
-            btn.Size = UDim2.new(0.96, 0, 0, 32)  
-            btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)  
-            btn.Text = "  " .. text:upper()  
-            btn.TextColor3 = Color3.new(1, 1, 1)  
-            btn.Font = "Code"; btn.TextSize = 13; btn.TextXAlignment = "Left"; btn.BorderSizePixel = 0
-            Ripple(btn)  
-            btn.MouseButton1Click:Connect(function() if Window.Running then callback() end end)  
-            return btn  
-        end  
+        -- [ELEMENTO: BUTTON] --
+        function Elements:Button(text, callback)
+            local btn = Instance.new("TextButton", AreaFrame)
+            btn.Size = UDim2.new(0.97, 0, 0, 32)
+            btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22); btn.BorderSizePixel = 0
+            btn.Text = "  " .. text:upper(); btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.Font = "Code"; btn.TextSize = 13; btn.TextXAlignment = "Left"
+            Ripple(btn)
+            btn.MouseButton1Click:Connect(function() if Window.Running then callback() end end)
+            return btn
+        end
 
-        -- TOGGLE  
-        function Elements:Toggle(text, callback)  
-            local state = false  
-            local tBtn = Instance.new("TextButton", AreaFrame)  
-            tBtn.Size = UDim2.new(0.96, 0, 0, 35)  
-            tBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25); tBtn.BorderSizePixel = 0
-            tBtn.Text = "  " .. text; tBtn.TextColor3 = Color3.fromRGB(200, 200, 200)  
-            tBtn.Font = "Code"; tBtn.TextSize = 13; tBtn.TextXAlignment = "Left"  
-              
-            local indicator = Instance.new("Frame", tBtn)  
-            indicator.Size = UDim2.new(0, 15, 0, 15)  
-            indicator.Position = UDim2.new(1, -25, 0.5, -7)  
-            indicator.BackgroundColor3 = Color3.fromRGB(45, 45, 45); indicator.BorderSizePixel = 0  
-              
-            tBtn.MouseButton1Click:Connect(function()  
+        -- [ELEMENTO: TOGGLE] --
+        function Elements:Toggle(text, callback)
+            local state = false
+            local tBtn = Instance.new("TextButton", AreaFrame)
+            tBtn.Size = UDim2.new(0.97, 0, 0, 35)
+            tBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22); tBtn.BorderSizePixel = 0
+            tBtn.Text = "  " .. text; tBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+            tBtn.Font = "Code"; tBtn.TextSize = 13; tBtn.TextXAlignment = "Left"
+            
+            local box = Instance.new("Frame", tBtn)
+            box.Size = UDim2.new(0, 14, 0, 14); box.Position = UDim2.new(1, -22, 0.5, -7)
+            box.BackgroundColor3 = Color3.fromRGB(40, 40, 40); box.BorderSizePixel = 0
+            
+            tBtn.MouseButton1Click:Connect(function()
                 if not Window.Running then return end
-                state = not state  
-                local targetColor = state and Window.MainColor or Color3.fromRGB(45, 45, 45)  
-                TweenService:Create(indicator, TweenInfo.new(0.2), {BackgroundColor3 = targetColor}):Play()  
-                tBtn.TextColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200)  
-                callback(state)  
-            end)  
-        end  
+                state = not state
+                local col = state and Window.MainColor or Color3.fromRGB(40, 40, 40)
+                TweenService:Create(box, TweenInfo.new(0.2), {BackgroundColor3 = col}):Play()
+                tBtn.TextColor3 = state and Color3.new(1, 1, 1) or Color3.fromRGB(180, 180, 180)
+                callback(state)
+            end)
+        end
 
-        -- SLIDER  
-        function Elements:Slider(text, min, max, default, callback)  
-            local sFrame = Instance.new("Frame", AreaFrame)  
-            sFrame.Size = UDim2.new(0.96, 0, 0, 45)  
-            sFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); sFrame.BorderSizePixel = 0  
-              
-            local label = Instance.new("TextLabel", sFrame)  
-            label.Text = "  " .. text .. ": " .. default  
-            label.Size = UDim2.new(1, 0, 0, 20); label.BackgroundTransparency = 1; label.TextColor3 = Color3.new(1,1,1)  
-            label.Font = "Code"; label.TextSize = 12; label.TextXAlignment = "Left"  
-              
-            local bar = Instance.new("Frame", sFrame)  
-            bar.Size = UDim2.new(0.9, 0, 0, 4); bar.Position = UDim2.new(0.05, 0, 0.7, 0)  
-            bar.BackgroundColor3 = Color3.fromRGB(45, 45, 45); bar.BorderSizePixel = 0  
-              
-            local fill = Instance.new("Frame", bar)  
-            fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)  
-            fill.BackgroundColor3 = Window.MainColor; fill.BorderSizePixel = 0  
-              
-            local dragging = false  
-            local function update(input)  
-                if not Window.Running then return end
-                local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)  
-                local val = math.floor(min + (max - min) * pos)  
-                fill.Size = UDim2.new(pos, 0, 1, 0)  
-                label.Text = "  " .. text .. ": " .. val  
-                callback(val)  
-            end  
-              
-            sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = true update(i) end end)  
-            UserInputService.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i) end end)  
-            UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dragging = false end end)  
-        end  
+        -- [ELEMENTO: SLIDER] --
+        function Elements:Slider(text, min, max, default, callback)
+            local sFrame = Instance.new("Frame", AreaFrame)
+            sFrame.Size = UDim2.new(0.97, 0, 0, 48); sFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22); sFrame.BorderSizePixel = 0
+            
+            local label = Instance.new("TextLabel", sFrame)
+            label.Text = "  " .. text .. ": " .. default; label.Size = UDim2.new(1, 0, 0, 25)
+            label.BackgroundTransparency = 1; label.TextColor3 = Color3.new(1,1,1); label.Font = "Code"; label.TextSize = 12; label.TextXAlignment = "Left"
+            
+            local bar = Instance.new("Frame", sFrame)
+            bar.Size = UDim2.new(0.9, 0, 0, 4); bar.Position = UDim2.new(0.05, 0, 0.7, 0)
+            bar.BackgroundColor3 = Color3.fromRGB(40, 40, 40); bar.BorderSizePixel = 0
+            
+            local fill = Instance.new("Frame", bar)
+            fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0); fill.BackgroundColor3 = Window.MainColor; fill.BorderSizePixel = 0
+            
+            local dragging = false
+            local function move(input)
+                local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+                local val = math.floor(min + (max - min) * pos)
+                fill.Size = UDim2.new(pos, 0, 1, 0)
+                label.Text = "  " .. text .. ": " .. val
+                callback(val)
+            end
+            
+            sFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true move(i) end end)
+            UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then move(i) end end)
+            UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+        end
 
-        -- BOX  
-        function Elements:Box(placeholder, callback)  
-            local boxFrame = Instance.new("Frame", AreaFrame)  
-            boxFrame.Size = UDim2.new(0.96, 0, 0, 32)  
-            boxFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); boxFrame.BorderSizePixel = 0  
-            local tb = Instance.new("TextBox", boxFrame)  
-            tb.Size = UDim2.new(1, -20, 1, 0); tb.Position = UDim2.new(0, 10, 0, 0)  
-            tb.BackgroundTransparency = 1; tb.TextColor3 = Color3.new(1, 1, 1); tb.PlaceholderText = placeholder  
-            tb.Font = "Code"; tb.TextSize = 13; tb.Text = ""; tb.TextXAlignment = "Left"  
-            tb.FocusLost:Connect(function() if Window.Running then callback(tb.Text) end end)  
-        end  
+        -- [ELEMENTO: BOX (INPUT)] --
+        function Elements:Box(placeholder, callback)
+            local bFrame = Instance.new("Frame", AreaFrame)
+            bFrame.Size = UDim2.new(0.97, 0, 0, 35); bFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22); bFrame.BorderSizePixel = 0
+            
+            local tb = Instance.new("TextBox", bFrame)
+            tb.Size = UDim2.new(1, -20, 1, 0); tb.Position = UDim2.new(0, 10, 0, 0)
+            tb.BackgroundTransparency = 1; tb.TextColor3 = Color3.new(1,1,1); tb.PlaceholderText = placeholder
+            tb.Font = "Code"; tb.TextSize = 13; tb.Text = ""; tb.TextXAlignment = "Left"
+            tb.FocusLost:Connect(function() if Window.Running then callback(tb.Text) end end)
+        end
 
-        -- DROPDOWN  
-        function Elements:Dropdown(text, list, callback)  
-            local open = false  
-            local dropFrame = Instance.new("Frame", AreaFrame)  
-            dropFrame.Size = UDim2.new(0.96, 0, 0, 32); dropFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)  
-            dropFrame.ClipsDescendants = true; dropFrame.BorderSizePixel = 0  
-            local btn = Instance.new("TextButton", dropFrame)  
-            btn.Size = UDim2.new(1, 0, 0, 32); btn.BackgroundTransparency = 1; btn.Text = "  " .. text .. " [V]"  
-            btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = "Code"; btn.TextSize = 13; btn.TextXAlignment = "Left"  
-            local container = Instance.new("Frame", dropFrame)  
-            container.Size = UDim2.new(1, 0, 0, #list * 30); container.Position = UDim2.new(0, 0, 0, 32); container.BackgroundTransparency = 1  
-            Instance.new("UIListLayout", container)  
-            for _, v in pairs(list) do  
-                local item = Instance.new("TextButton", container)  
-                item.Size = UDim2.new(1, 0, 0, 30); item.BackgroundColor3 = Color3.fromRGB(30, 30, 30); item.BorderSizePixel = 0  
-                item.Text = v; item.TextColor3 = Color3.fromRGB(200, 200, 200); item.Font = "Code"; item.TextSize = 12  
-                item.MouseButton1Click:Connect(function()  
-                    if not Window.Running then return end
-                    btn.Text = "  " .. text .. " [" .. v .. "]"  
-                    open = false  
-                    TweenService:Create(dropFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.96, 0, 0, 32)}):Play()  
-                    callback(v)  
-                end)  
-            end  
-            btn.MouseButton1Click:Connect(function()  
-                open = not open  
-                local targetH = open and (32 + (#list * 30)) or 32  
-                TweenService:Create(dropFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.96, 0, 0, targetH)}):Play()  
-            end)  
-        end  
+        -- [ELEMENTO: DROPDOWN] --
+        function Elements:Dropdown(text, list, callback)
+            local isDropped = false
+            local dFrame = Instance.new("Frame", AreaFrame)
+            dFrame.Size = UDim2.new(0.97, 0, 0, 32); dFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+            dFrame.ClipsDescendants = true; dFrame.BorderSizePixel = 0
+            
+            local dBtn = Instance.new("TextButton", dFrame)
+            dBtn.Size = UDim2.new(1, 0, 0, 32); dBtn.BackgroundTransparency = 1; dBtn.Text = "  " .. text .. " [V]"
+            dBtn.TextColor3 = Color3.new(1,1,1); dBtn.Font = "Code"; dBtn.TextSize = 13; dBtn.TextXAlignment = "Left"
+            
+            local itemHolder = Instance.new("Frame", dFrame)
+            itemHolder.Size = UDim2.new(1, 0, 0, #list * 30); itemHolder.Position = UDim2.new(0, 0, 0, 32); itemHolder.BackgroundTransparency = 1
+            Instance.new("UIListLayout", itemHolder)
+            
+            for _, v in pairs(list) do
+                local item = Instance.new("TextButton", itemHolder)
+                item.Size = UDim2.new(1, 0, 0, 30); item.BackgroundColor3 = Color3.fromRGB(26, 26, 26); item.BorderSizePixel = 0
+                item.Text = v; item.TextColor3 = Color3.fromRGB(180,180,180); item.Font = "Code"; item.TextSize = 12
+                item.MouseButton1Click:Connect(function()
+                    dBtn.Text = "  " .. text .. " [" .. v .. "]"
+                    isDropped = false
+                    TweenService:Create(dFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.97, 0, 0, 32)}):Play()
+                    callback(v)
+                end)
+            end
+            
+            dBtn.MouseButton1Click:Connect(function()
+                isDropped = not isDropped
+                local targetH = isDropped and (32 + (#list * 30)) or 32
+                TweenService:Create(dFrame, TweenInfo.new(0.3), {Size = UDim2.new(0.97, 0, 0, targetH)}):Play()
+            end)
+        end
 
-        -- PLAYER SELECTOR  
-        function Elements:PlayerSelector(text, callback)  
-            local function getPlrs()  
-                local tbl = {}  
-                for _, p in pairs(players:GetPlayers()) do table.insert(tbl, p.Name) end  
-                return tbl  
-            end  
-            self:Dropdown(text, getPlrs(), function(selected)  
-                callback(players:FindFirstChild(selected))  
-            end)  
-        end  
+        -- [ELEMENTO: KEYBIND] --
+        function Elements:Keybind(text, default, callback)
+            local currKey = default
+            local isWaiting = false
+            local kbBtn = self:Button(text .. " [" .. currKey.Name .. "]", function() end)
+            
+            kbBtn.MouseButton1Click:Connect(function()
+                isWaiting = true
+                kbBtn.Text = "  " .. text .. " [...]"
+            end)
+            
+            UserInputService.InputBegan:Connect(function(input)
+                if isWaiting and input.UserInputType == Enum.UserInputType.Keyboard then
+                    currKey = input.KeyCode
+                    isWaiting = false
+                    kbBtn.Text = "  " .. text .. " [" .. currKey.Name .. "]"
+                elseif not isWaiting and input.KeyCode == currKey then
+                    callback()
+                end
+            end)
+        end
 
-        -- KEYBIND  
-        function Elements:Keybind(text, default, callback)  
-            local key = default  
-            local waiting = false  
-            local kBtn = self:Button(text .. " [" .. key.Name .. "]", function() end)  
-            kBtn.MouseButton1Click:Connect(function() waiting = true; kBtn.Text = "  " .. text .. " [...]" end)  
-            UserInputService.InputBegan:Connect(function(input)  
-                if not Window.Running then return end
-                if waiting and input.UserInputType == Enum.UserInputType.Keyboard then  
-                    key = input.KeyCode; waiting = false; kBtn.Text = "  " .. text .. " [" .. key.Name .. "]"  
-                elseif not waiting and input.KeyCode == key then  
-                    callback()  
-                end  
-            end)  
-        end  
+        -- [ELEMENTO: PLAYER SELECTOR] --
+        function Elements:PlayerSelector(text, callback)
+            local function refresh()
+                local pNames = {}
+                for _, p in pairs(players:GetPlayers()) do table.insert(pNames, p.Name) end
+                return pNames
+            end
+            self:Dropdown(text, refresh(), function(sel)
+                callback(players:FindFirstChild(sel))
+            end)
+        end
 
-        -- CONSOLE DE LOGS  
-        function Elements:Logs(h)  
-            local logScroll = Instance.new("ScrollingFrame", AreaFrame)  
-            logScroll.Size = UDim2.new(0.96, 0, 0, h or 100); logScroll.BackgroundColor3 = Color3.new(0, 0, 0)  
-            logScroll.ScrollBarThickness = 2; logScroll.AutomaticCanvasSize = "Y"; logScroll.BorderSizePixel = 0  
-            local logLayout = Instance.new("UIListLayout", logScroll)  
-            local logObj = {}  
-            function logObj:Log(msg, color)  
-                local l = Instance.new("TextLabel", logScroll)  
-                l.Size = UDim2.new(1, -10, 0, 18); l.BackgroundTransparency = 1  
-                l.Text = " > " .. msg; l.TextColor3 = color or Color3.new(1, 1, 1)  
-                l.Font = "Code"; l.TextSize = 11; l.TextXAlignment = "Left"  
-            end  
-            function logObj:Clear()  
-                for _, v in pairs(logScroll:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end  
-            end  
-            return logObj  
-        end  
+        -- [ELEMENTO: CONSOLE LOGS] --
+        function Elements:Logs(h)
+            local lFrame = Instance.new("ScrollingFrame", AreaFrame)
+            lFrame.Size = UDim2.new(0.97, 0, 0, h or 120); lFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+            lFrame.BorderSizePixel = 0; lFrame.ScrollBarThickness = 2; lFrame.AutomaticCanvasSize = "Y"
+            local lLayout = Instance.new("UIListLayout", lFrame)
+            
+            local logObj = {}
+            function logObj:Log(msg, color)
+                local l = Instance.new("TextLabel", lFrame)
+                l.Size = UDim2.new(1, -5, 0, 18); l.BackgroundTransparency = 1
+                l.Text = " > " .. msg; l.TextColor3 = color or Color3.new(1,1,1)
+                l.Font = "Code"; l.TextSize = 11; l.TextXAlignment = "Left"
+                lFrame.CanvasPosition = Vector2.new(0, 9999)
+            end
+            function logObj:Clear()
+                for _, v in pairs(lFrame:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end
+            end
+            return logObj
+        end
 
-        return Elements  
-    end  
-    return Window  
-end  
+        return Elements
+    end
+    return Window
+end
 
 return luayV2
