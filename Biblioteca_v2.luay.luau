@@ -218,7 +218,7 @@ function luayV2:Window(Config)
     local L_Side = Instance.new("Frame", Main)
     L_Side.Name = "L_Side"
     L_Side.Size = UDim2.new(0, 2, 1, 0)
-    L_Side.Position = UDim2.new(0, 40, 0, 0) -- Divide Sidebar do Container
+    L_Side.Position = UDim2.new(0, 40, 0, 0) -- ❌ AQUI
     L_Side.BackgroundColor3 = Window.Theme
     L_Side.BorderSizePixel = 0
     L_Side.ZIndex = 5
