@@ -656,90 +656,77 @@ end
 end
 
 --[[key system]]
-function luayV2:KeySystem(cfg)
-    local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+function Elements:KeySystem(cfg)
+    local KeyFrame = Instance.new("Frame", AreaFrame)
+    KeyFrame.Size = UDim2.new(0.96,0,0,90)
+    KeyFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    KeyFrame.BorderSizePixel = 0
+    Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0,6)
 
-    local Gui = Instance.new("ScreenGui")
-    Gui.Name = "luayV2_KeySystem"
-    Gui.ResetOnSpawn = false
-    Gui.Parent = PlayerGui
-
-    local Main = Instance.new("Frame")
-    Main.Size = UDim2.fromScale(0.3,0.27)
-    Main.Position = UDim2.fromScale(0.35,0.36)
-    Main.BackgroundColor3 = Color3.fromRGB(15,15,15)
-    Main.BorderSizePixel = 0
-    Main.Parent = Gui
-
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,10)
-
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Thickness = 1
-    Stroke.Transparency = 0.3
-    Stroke.Color = Color3.fromRGB(90,90,90)
-    Stroke.Parent = Main
-
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1,0,0,36)
+    local Title = Instance.new("TextLabel", KeyFrame)
+    Title.Size = UDim2.new(1,0,0,18)
+    Title.Text = (cfg.Title or "KEY SYSTEM"):upper()
+    Title.Font = Enum.Font.Code
+    Title.TextSize = 11
+    Title.TextColor3 = Window.Theme
     Title.BackgroundTransparency = 1
-    Title.Text = cfg.Title or "Key System"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    Title.TextColor3 = Color3.new(1,1,1)
-    Title.Parent = Main
+    Title.TextXAlignment = "Left"
+    Title.Text = "  "..Title.Text
 
-    local Input = Instance.new("TextBox")
-    Input.Size = UDim2.new(1,-24,0,40)
-    Input.Position = UDim2.new(0,12,0,50)
-    Input.PlaceholderText = "Insira a Key..."
-    Input.Text = ""
-    Input.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    Input.TextColor3 = Color3.new(1,1,1)
-    Input.Font = Enum.Font.Gotham
-    Input.TextSize = 14
-    Input.ClearTextOnFocus = false
-    Input.Parent = Main
+    local Box = Instance.new("TextBox", KeyFrame)
+    Box.Size = UDim2.new(0.94,0,0,26)
+    Box.Position = UDim2.new(0.03,0,0,26)
+    Box.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    Box.TextColor3 = Color3.new(1,1,1)
+    Box.PlaceholderText = "Insira a Key..."
+    Box.ClearTextOnFocus = false
+    Box.Font = Enum.Font.Code
+    Box.TextSize = 11
+    Box.BorderSizePixel = 0
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0,4)
 
-    Instance.new("UICorner", Input).CornerRadius = UDim.new(0,8)
-
-    local GetKey = Instance.new("TextButton")
-    GetKey.Size = UDim2.new(0.48,-6,0,38)
-    GetKey.Position = UDim2.new(0,12,0,100)
-    GetKey.Text = "Get Key"
-    GetKey.Font = Enum.Font.GothamBold
-    GetKey.TextSize = 14
+    local GetKey = Instance.new("TextButton", KeyFrame)
+    GetKey.Size = UDim2.new(0.46,0,0,24)
+    GetKey.Position = UDim2.new(0.03,0,1,-30)
+    GetKey.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    GetKey.Text = "GET KEY"
     GetKey.TextColor3 = Color3.new(1,1,1)
-    GetKey.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    GetKey.Parent = Main
+    GetKey.Font = Enum.Font.Code
+    GetKey.TextSize = 10
+    GetKey.BorderSizePixel = 0
+    Instance.new("UICorner", GetKey).CornerRadius = UDim.new(0,4)
+    CreateRipple(GetKey)
 
-    Instance.new("UICorner", GetKey).CornerRadius = UDim.new(0,8)
-
-    local Submit = Instance.new("TextButton")
-    Submit.Size = UDim2.new(0.48,-6,0,38)
-    Submit.Position = UDim2.new(0.52,6,0,100)
-    Submit.Text = "Submit"
-    Submit.Font = Enum.Font.GothamBold
-    Submit.TextSize = 14
+    local Submit = Instance.new("TextButton", KeyFrame)
+    Submit.Size = UDim2.new(0.46,0,0,24)
+    Submit.Position = UDim2.new(0.51,0,1,-30)
+    Submit.BackgroundColor3 = Window.Theme
+    Submit.Text = "SUBMIT"
     Submit.TextColor3 = Color3.new(1,1,1)
-    Submit.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    Submit.Parent = Main
-
-    Instance.new("UICorner", Submit).CornerRadius = UDim.new(0,8)
+    Submit.Font = Enum.Font.Code
+    Submit.TextSize = 10
+    Submit.BorderSizePixel = 0
+    Instance.new("UICorner", Submit).CornerRadius = UDim.new(0,4)
+    CreateRipple(Submit)
 
     GetKey.MouseButton1Click:Connect(function()
         if cfg.GetKey then
-            setclipboard(cfg.GetKey)
-            if luayV2.Notify then
-                luayV2:Notify("Key","Link copiado")
-            end
+            if setclipboard then setclipboard(cfg.GetKey) end
+            luayV2:Notify({
+                Title = "Key",
+                Text = "Link copiado",
+                Duration = 3
+            })
         end
     end)
 
     Submit.MouseButton1Click:Connect(function()
-        if cfg.OnSubmit then
-            cfg.OnSubmit(Input.Text, Gui)
+        if cfg.Callback then
+            cfg.Callback(Box.Text, KeyFrame)
         end
     end)
+
+    return KeyFrame
 end
 
 function luayV2:GetValue(name)
