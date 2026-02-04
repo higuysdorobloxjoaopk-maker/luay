@@ -27,7 +27,7 @@ local ICON_MAP = {
     ["eye"] = "rbxassetid://7072706395",
     ["shield"] = "rbxassetid://7072720072",
     ["mouse"] = "rbxassetid://7072706180",
-    ["zap"] = "rbxassetid://7072882435"
+    ["key"] = "rbxassetid://115657721477798"
 }
 
 -- [[ SISTEMA DE RIPPLE (EFEITO DE CLIQUE) ]] --
