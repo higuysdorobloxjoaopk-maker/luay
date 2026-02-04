@@ -546,22 +546,22 @@ function Elements:Slider(cfg)
     Fill.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
     Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
 
-    -- Bolinha/handle com HITBOX maior
-    local Handle = Instance.new("TextButton", Bar)
-    Handle.Size = UDim2.new(0, 14, 0, 14) -- visual da bolinha
+    -- Bolinha/handle (Frame para evitar texto "Button")
+    local Handle = Instance.new("Frame", Bar)
+    Handle.Size = UDim2.new(0, 14, 0, 14)
     Handle.AnchorPoint = Vector2.new(0.5,0.5)
     Handle.Position = UDim2.new((Value-Min)/(Max-Min), 0, 0.5, 0)
     Handle.BackgroundColor3 = luayV2.ThemeColor or Color3.fromRGB(0,255,150)
-    Handle.AutoButtonColor = false
     Instance.new("UICorner", Handle).CornerRadius = UDim.new(1,0)
 
-    -- HITBOX maior (Frame transparente)
+    -- HITBOX maior (TextButton transparente)
     local Hitbox = Instance.new("TextButton", Bar)
-    Hitbox.Size = UDim2.new(0, 40, 0, 40) -- aumenta a área de clique
+    Hitbox.Size = UDim2.new(0, 40, 0, 40)
     Hitbox.AnchorPoint = Vector2.new(0.5,0.5)
     Hitbox.Position = Handle.Position
     Hitbox.BackgroundTransparency = 1
     Hitbox.AutoButtonColor = false
+    Hitbox.Text = "" -- garante que nada apareça
 
     local UIS = game:GetService("UserInputService")
     local dragging = false
@@ -574,11 +574,14 @@ function Elements:Slider(cfg)
         Hitbox.Position = Handle.Position
         ValueLabel.Text = tostring(Value)
         luayV2.Values[Name] = Value
+        if cfg.Callback then
+            cfg.Callback(Value)
+        end
     end
 
     local function startDrag(input)
         dragging = true
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             updateSlider(input.Position.X)
         end
     end
@@ -595,6 +598,7 @@ function Elements:Slider(cfg)
     end)
     UIS.InputEnded:Connect(stopDrag)
 end
+
 
         -- [[ LABEL ATUALIZÁVEL ]] --
         function Elements:Label(Text)
