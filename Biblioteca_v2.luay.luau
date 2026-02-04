@@ -657,25 +657,32 @@ end
 
 --[[key system]]
 function Elements:KeySystem(cfg)
-    local KeyFrame = Instance.new("Frame", AreaFrame)
-    KeyFrame.Size = UDim2.new(0.96,0,0,90)
-    KeyFrame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    KeyFrame.BorderSizePixel = 0
-    Instance.new("UICorner", KeyFrame).CornerRadius = UDim.new(0,6)
+    local Item = Instance.new("Frame")
+    Item.Size = UDim2.new(1,-10,0,90)
+    Item.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    Item.BorderSizePixel = 0
+    Item.Parent = ElementsFrame
 
-    local Title = Instance.new("TextLabel", KeyFrame)
-    Title.Size = UDim2.new(1,0,0,18)
+    Instance.new("UICorner", Item).CornerRadius = UDim.new(0,6)
+
+    local Stroke = Instance.new("UIStroke", Item)
+    Stroke.Thickness = 1
+    Stroke.Transparency = 0.5
+    Stroke.Color = Window.Theme
+
+    local Title = Instance.new("TextLabel", Item)
+    Title.Size = UDim2.new(1,-10,0,16)
+    Title.Position = UDim2.new(0,5,0,4)
+    Title.BackgroundTransparency = 1
     Title.Text = (cfg.Title or "KEY SYSTEM"):upper()
     Title.Font = Enum.Font.Code
     Title.TextSize = 11
     Title.TextColor3 = Window.Theme
-    Title.BackgroundTransparency = 1
     Title.TextXAlignment = "Left"
-    Title.Text = "  "..Title.Text
 
-    local Box = Instance.new("TextBox", KeyFrame)
-    Box.Size = UDim2.new(0.94,0,0,26)
-    Box.Position = UDim2.new(0.03,0,0,26)
+    local Box = Instance.new("TextBox", Item)
+    Box.Size = UDim2.new(1,-14,0,28)
+    Box.Position = UDim2.new(0,7,0,24)
     Box.BackgroundColor3 = Color3.fromRGB(12,12,12)
     Box.TextColor3 = Color3.new(1,1,1)
     Box.PlaceholderText = "Insira a Key..."
@@ -685,9 +692,9 @@ function Elements:KeySystem(cfg)
     Box.BorderSizePixel = 0
     Instance.new("UICorner", Box).CornerRadius = UDim.new(0,4)
 
-    local GetKey = Instance.new("TextButton", KeyFrame)
-    GetKey.Size = UDim2.new(0.46,0,0,24)
-    GetKey.Position = UDim2.new(0.03,0,1,-30)
+    local GetKey = Instance.new("TextButton", Item)
+    GetKey.Size = UDim2.new(0.48,0,0,26)
+    GetKey.Position = UDim2.new(0.02,0,1,-30)
     GetKey.BackgroundColor3 = Color3.fromRGB(25,25,25)
     GetKey.Text = "GET KEY"
     GetKey.TextColor3 = Color3.new(1,1,1)
@@ -697,9 +704,9 @@ function Elements:KeySystem(cfg)
     Instance.new("UICorner", GetKey).CornerRadius = UDim.new(0,4)
     CreateRipple(GetKey)
 
-    local Submit = Instance.new("TextButton", KeyFrame)
-    Submit.Size = UDim2.new(0.46,0,0,24)
-    Submit.Position = UDim2.new(0.51,0,1,-30)
+    local Submit = Instance.new("TextButton", Item)
+    Submit.Size = UDim2.new(0.48,0,0,26)
+    Submit.Position = UDim2.new(0.5,0,1,-30)
     Submit.BackgroundColor3 = Window.Theme
     Submit.Text = "SUBMIT"
     Submit.TextColor3 = Color3.new(1,1,1)
@@ -722,11 +729,11 @@ function Elements:KeySystem(cfg)
 
     Submit.MouseButton1Click:Connect(function()
         if cfg.Callback then
-            cfg.Callback(Box.Text, KeyFrame)
+            cfg.Callback(Box.Text, Item)
         end
     end)
 
-    return KeyFrame
+    return Item
 end
 
 function luayV2:GetValue(name)
