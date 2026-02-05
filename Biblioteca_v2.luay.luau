@@ -768,36 +768,36 @@ end
     end
     return Window
 end
---[[key system]]--
+
+-- [[ ELEMENTO SOLO: KEY SYSTEM COMPLETO ]] --
 function luayV2:KeySystem(Config)
-    local Key = Config.Key
-    local KeyURL = Config.URL
-    local LoadstringScript = Config.Loadstring
+    local Key = Config.Key or ""
+    local KeyURL = Config.URL or ""
+    local LoadstringScript = Config.Loadstring or ""
     local FileName = "LeviKey_Save.json"
     
-    -- [ FUNÇÃO PARA CARREGAR O SCRIPT FINAL ]
+    -- Função para executar o script final
     local function SuccessAction()
         luayV2:Notify({
             Title = "Key System", 
-            Text = "Key correta! Carregando recursos...", 
+            Text = "Key corretamente carregando recursos...", 
             Color = Color3.fromRGB(0, 255, 100),
             Duration = 5
         })
         task.wait(1)
-        if LoadstringScript then
+        if LoadstringScript ~= "" then
             local s, e = pcall(function()
                 loadstring(LoadstringScript)()
             end)
-            if not s then warn("Erro ao carregar script: " .. e) end
+            if not s then warn("Erro ao carregar o script final: " .. e) end
         end
     end
 
-    -- [ VERIFICA SE JÁ ESTÁ SALVO ]
+    -- [ AUTO-SAVE: VERIFICA SE JÁ ACERTOU ANTES ]
     if isfile and isfile(FileName) then
-        local saved = readfile(FileName)
-        if saved == Key then
+        if readfile(FileName) == Key then
             SuccessAction()
-            return -- Encerra aqui, nem abre a GUI
+            return 
         end
     end
 
@@ -809,16 +809,42 @@ function luayV2:KeySystem(Config)
     Main.Position = UDim2.new(0.5, -115, 0.5, -115)
     Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     Main.BorderSizePixel = 0
-    MakeDraggable(Main, Main) -- [cite: 5, 8]
+    Main.ClipsDescendants = true
+    
     Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 4)
+    pcall(function() MakeDraggable(Main, Main) end)
 
-    -- Linha Lateral (Design Leviathan) [cite: 17]
+    -- Linha Lateral
     local L_Side = Instance.new("Frame", Main)
     L_Side.Size = UDim2.new(0, 2, 1, 0)
     L_Side.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     L_Side.BorderSizePixel = 0
 
-    -- Imagem Pedida (81772726)
+    -- Botões de Controle (X e -)
+    local Controls = Instance.new("Frame", Main)
+    Controls.Size = UDim2.new(1, -10, 0, 20)
+    Controls.Position = UDim2.new(0, 5, 0, 5)
+    Controls.BackgroundTransparency = 1
+
+    local CloseBtn = Instance.new("TextButton", Controls)
+    CloseBtn.Text = "X"
+    CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+    CloseBtn.Position = UDim2.new(1, -20, 0, 0)
+    CloseBtn.BackgroundTransparency = 1
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    CloseBtn.Font = Enum.Font.Code
+    CloseBtn.TextSize = 16
+
+    local MiniBtn = Instance.new("TextButton", Controls)
+    MiniBtn.Text = "-"
+    MiniBtn.Size = UDim2.new(0, 20, 0, 20)
+    MiniBtn.Position = UDim2.new(1, -45, 0, 0)
+    MiniBtn.BackgroundTransparency = 1
+    MiniBtn.TextColor3 = Color3.new(1, 1, 1)
+    MiniBtn.Font = Enum.Font.Code
+    MiniBtn.TextSize = 20
+
+    -- Imagem e Título
     local Icon = Instance.new("ImageLabel", Main)
     Icon.Size = UDim2.new(0, 60, 0, 60)
     Icon.Position = UDim2.new(0.5, -30, 0, 20)
@@ -834,6 +860,7 @@ function luayV2:KeySystem(Config)
     Title.TextSize = 14
     Title.BackgroundTransparency = 1
 
+    -- Input e Botões
     local Input = Instance.new("TextBox", Main)
     Input.Size = UDim2.new(0.8, 0, 0, 30)
     Input.Position = UDim2.new(0.1, 0, 0, 120)
@@ -849,10 +876,9 @@ function luayV2:KeySystem(Config)
     Submit.Size = UDim2.new(0.8, 0, 0, 25)
     Submit.Position = UDim2.new(0.1, 0, 0, 160)
     Submit.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Submit.TextColor3 = Color3.new(1,1,1)
+    Submit.TextColor3 = Color3.new(1, 1, 1)
     Submit.Font = Enum.Font.Code
     Instance.new("UICorner", Submit).CornerRadius = UDim.new(0, 4)
-    CreateRipple(Submit) -- [cite: 2]
 
     local GetKey = Instance.new("TextButton", Main)
     GetKey.Text = "GET KEY"
@@ -863,19 +889,27 @@ function luayV2:KeySystem(Config)
     GetKey.Font = Enum.Font.Code
     Instance.new("UICorner", GetKey).CornerRadius = UDim.new(0, 4)
 
-    -- [ LÓGICA DE VERIFICAÇÃO ]
+    -- [ LÓGICA DOS BOTÕES ]
+    CloseBtn.MouseButton1Click:Connect(function() KeyGui:Destroy() end)
+    
+    local Minimized = false
+    MiniBtn.MouseButton1Click:Connect(function()
+        Minimized = not Minimized
+        TweenService:Create(Main, TweenInfo.new(0.3), {Size = Minimized and UDim2.new(0, 230, 0, 30) or UDim2.new(0, 230, 0, 230)}):Play()
+    end)
+
     Submit.MouseButton1Click:Connect(function()
         if Input.Text == Key then
-            if writefile then writefile(FileName, Key) end -- Salva a Key [cite: 14]
+            if writefile then writefile(FileName, Key) end
             KeyGui:Destroy()
             SuccessAction()
         else
             luayV2:Notify({
                 Title = "Key System", 
-                Text = "Erro Key: {" .. Input.Text .. "} não é válida", 
+                Text = "Erro Key {" .. Input.Text .. "} não é valida", 
                 Color = Color3.fromRGB(255, 50, 50),
                 Duration = 5
-            }) -- [cite: 8, 11]
+            })
             Input.Text = ""
         end
     end)
