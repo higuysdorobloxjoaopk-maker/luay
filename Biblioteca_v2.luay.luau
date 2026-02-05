@@ -161,6 +161,7 @@ function luayV2:Window(Config)
     local Window = {
         Theme = Config.Color or Color3.fromRGB(0, 170, 255),
         Toggles = {},
+        FreeButtons = {},
         ConfigData = {},
         ActiveTab = nil,
         Minimized = false,
@@ -315,9 +316,16 @@ function luayV2:Window(Config)
         if Window.Closed then return end
         Window.Closed = true
         
-        -- Desativa todos os Toggles antes de sumir
+        -- 1. Desativa todos os Toggles
         for _, Callback in pairs(Window.Toggles) do
             pcall(function() Callback(false) end)
+        end
+        
+        -- [[ NOVO: Destrói os botões flutuantes vinculados a ESTA janela ]] --
+        for _, Btn in pairs(Window.FreeButtons) do
+            if Btn.Destroy then
+                pcall(function() Btn:Destroy() end)
+            end
         end
         
         local CloseTween = TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2.new(0, 230, 0, 47)})
@@ -653,107 +661,112 @@ end
 
         return Elements
     end
+-- [[ BOTÃO LIVRE / FLUTUANTE VINCULADO À JANELA ]] --
+    function Window:CreateFreeButton(Config) -- Mudamos de luayV2 para Window
+        local FreeButton = {
+            DraggingEnabled = Config.Draggable or false,
+            IsHeld = false
+        }
 
-    return Window
-end
-
--- [[  BOTÃO LIVRE / FLUTUANTE ]] --
-
-function luayV2:CreateFreeButton(Config)
-    local FreeButton = {
-        DraggingEnabled = Config.Draggable or false,
-        IsHeld = false
-    }
-
-    local ScreenGui = CoreGui:FindFirstChild("LuayFreeButtons") or Instance.new("ScreenGui", CoreGui)
-    ScreenGui.Name = "LuayFreeButtons"
-
-    local BtnFrame = Instance.new("TextButton")
-    BtnFrame.Name = Config.Name or "FreeButton"
-    BtnFrame.Size = UDim2.new(0, 45, 0, 45)
-    BtnFrame.Position = Config.Position or UDim2.new(0.5, 0, 0.5, 0)
-    BtnFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-    BtnFrame.BackgroundTransparency = 0.35 -- 65% Visível (conforme pedido: 65% transparente)
-    BtnFrame.Text = Config.Text or ""
-    BtnFrame.TextColor3 = Color3.new(1, 1, 1)
-    BtnFrame.Font = Enum.Font.Code
-    BtnFrame.TextSize = 18
-    BtnFrame.Parent = ScreenGui
-    BtnFrame.AutoButtonColor = false
-
-    local Corner = Instance.new("UICorner", BtnFrame)
-    Corner.CornerRadius = UDim.new(1, 0)
-
-    local Stroke = Instance.new("UIStroke", BtnFrame)
-    Stroke.Color = self.ThemeColor or Color3.fromRGB(0, 255, 150)
-    Stroke.Thickness = 2
-
-    -- [ LÓGICA DE ARRASTAR ]
-    local function EnableDrag()
-        local Dragging, DragInput, DragStart, StartPos
+        -- Cria uma ScreenGui separada para o botão, mas com nome único baseado na Janela
+        local ButtonGui = Instance.new("ScreenGui", CoreGui)
+        ButtonGui.Name = "LuayBtn_" .. HttpService:GenerateGUID(false) -- Nome único evita conflitos
         
-        BtnFrame.InputBegan:Connect(function(input)
-            if FreeButton.DraggingEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
-                Dragging = true
-                DragStart = input.Position
-                StartPos = BtnFrame.Position
-            end
-        end)
+        -- [[ DICA: Isso ajuda no Anti-Bug visual entre janelas ]]
+        ButtonGui.DisplayOrder = ScreenGui.DisplayOrder + 10 
 
-        BtnFrame.InputChanged:Connect(function(input)
-            if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                local Delta = input.Position - DragStart
-                BtnFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
-            end
+        local BtnFrame = Instance.new("TextButton")
+        BtnFrame.Name = Config.Name or "FreeButton"
+        BtnFrame.Size = UDim2.new(0, 45, 0, 45)
+        BtnFrame.Position = Config.Position or UDim2.new(0.5, 0, 0.5, 0)
+        BtnFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+        BtnFrame.BackgroundTransparency = 0.35 
+        BtnFrame.Text = Config.Text or ""
+        BtnFrame.TextColor3 = Color3.new(1, 1, 1)
+        BtnFrame.Font = Enum.Font.Code
+        BtnFrame.TextSize = 18
+        BtnFrame.Parent = ButtonGui
+        BtnFrame.AutoButtonColor = false
+
+        -- Estilização
+        local Corner = Instance.new("UICorner", BtnFrame)
+        Corner.CornerRadius = UDim.new(1, 0)
+
+        local Stroke = Instance.new("UIStroke", BtnFrame)
+        Stroke.Color = Window.Theme -- Usa o tema da Janela Pai
+        Stroke.Thickness = 2
+
+        -- [ LÓGICA DE ARRASTAR (Mantida igual) ]
+        local function EnableDrag()
+            local Dragging, DragInput, DragStart, StartPos
+            
+            BtnFrame.InputBegan:Connect(function(input)
+                if FreeButton.DraggingEnabled and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+                    Dragging = true
+                    DragStart = input.Position
+                    StartPos = BtnFrame.Position
+                end
+            end)
+
+            BtnFrame.InputChanged:Connect(function(input)
+                if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    local Delta = input.Position - DragStart
+                    BtnFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    Dragging = false
+                end
+            end)
+        end
+        EnableDrag()
+
+        -- [ LÓGICA DE CLIQUE ]
+        BtnFrame.MouseButton1Down:Connect(function()
+            FreeButton.IsHeld = true
+            if Config.Callback then Config.Callback(true) end
         end)
 
         UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                Dragging = false
+            if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and FreeButton.IsHeld then
+                FreeButton.IsHeld = false
+                if Config.Callback then Config.Callback(false) end
             end
         end)
-    end
-    EnableDrag()
 
-    -- [ LÓGICA DE CLIQUE E SEGURAR (SINAL CONTÍNUO) ]
-    BtnFrame.MouseButton1Down:Connect(function()
-        FreeButton.IsHeld = true
-        if Config.Callback then Config.Callback(true) end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and FreeButton.IsHeld then
-            FreeButton.IsHeld = false
-            if Config.Callback then Config.Callback(false) end
-        end
-    end)
-
-    -- Loop para sinal contínuo se necessário
-    task.spawn(function()
-        while true do
-            if FreeButton.IsHeld and Config.OnHold then
-                Config.OnHold()
+        -- Loop de Hold
+        task.spawn(function()
+            while true do
+                if FreeButton.IsHeld and Config.OnHold then
+                    Config.OnHold()
+                end
+                task.wait(0.05)
+                if not BtnFrame.Parent then break end
             end
-            task.wait(0.05) -- Frequência do sinal
-            if not BtnFrame.Parent then break end
+        end)
+
+        -- Métodos do Botão
+        function FreeButton:SetLocked(Value)
+            self.DraggingEnabled = not Value
+            Stroke.Transparency = Value and 0.5 or 0
         end
-    end)
 
-    -- [ FUNÇÕES DE CONTROLE ]
-    function FreeButton:SetLocked(Value)
-        self.DraggingEnabled = not Value
-        Stroke.Transparency = Value and 0.5 or 0 -- Feedback visual ao travar
+        function FreeButton:Visible(Value)
+            BtnFrame.Visible = Value
+        end
+
+        function FreeButton:Destroy()
+            ButtonGui:Destroy() -- Destrói a GUI inteira do botão
+        end
+
+        -- [[ O SEGREDO: REGISTRAR O BOTÃO NA JANELA ]] --
+        table.insert(Window.FreeButtons, FreeButton)
+
+        return FreeButton
     end
-
-    function FreeButton:Visible(Value)
-        BtnFrame.Visible = Value
-    end
-
-    function FreeButton:Destroy()
-        BtnFrame:Destroy()
-    end
-
-    return FreeButton
+    return Window
 end
 
 
