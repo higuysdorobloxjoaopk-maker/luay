@@ -768,8 +768,125 @@ end
     end
     return Window
 end
+--[[key system]]--
+function luayV2:KeySystem(Config)
+    local Key = Config.Key
+    local KeyURL = Config.URL
+    local LoadstringScript = Config.Loadstring
+    local FileName = "LeviKey_Save.json"
+    
+    -- [ FUNÇÃO PARA CARREGAR O SCRIPT FINAL ]
+    local function SuccessAction()
+        luayV2:Notify({
+            Title = "Key System", 
+            Text = "Key correta! Carregando recursos...", 
+            Color = Color3.fromRGB(0, 255, 100),
+            Duration = 5
+        })
+        task.wait(1)
+        if LoadstringScript then
+            local s, e = pcall(function()
+                loadstring(LoadstringScript)()
+            end)
+            if not s then warn("Erro ao carregar script: " .. e) end
+        end
+    end
 
+    -- [ VERIFICA SE JÁ ESTÁ SALVO ]
+    if isfile and isfile(FileName) then
+        local saved = readfile(FileName)
+        if saved == Key then
+            SuccessAction()
+            return -- Encerra aqui, nem abre a GUI
+        end
+    end
 
+    local KeyGui = Instance.new("ScreenGui", CoreGui)
+    KeyGui.Name = "LeviKey_" .. HttpService:GenerateGUID(false)
+
+    local Main = Instance.new("Frame", KeyGui)
+    Main.Size = UDim2.new(0, 230, 0, 230)
+    Main.Position = UDim2.new(0.5, -115, 0.5, -115)
+    Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    Main.BorderSizePixel = 0
+    MakeDraggable(Main, Main) -- [cite: 5, 8]
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 4)
+
+    -- Linha Lateral (Design Leviathan) [cite: 17]
+    local L_Side = Instance.new("Frame", Main)
+    L_Side.Size = UDim2.new(0, 2, 1, 0)
+    L_Side.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    L_Side.BorderSizePixel = 0
+
+    -- Imagem Pedida (81772726)
+    local Icon = Instance.new("ImageLabel", Main)
+    Icon.Size = UDim2.new(0, 60, 0, 60)
+    Icon.Position = UDim2.new(0.5, -30, 0, 20)
+    Icon.BackgroundTransparency = 1
+    Icon.Image = "rbxassetid://81772726"
+
+    local Title = Instance.new("TextLabel", Main)
+    Title.Text = "KEY SYSTEM"
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.Position = UDim2.new(0, 0, 0, 85)
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.Font = Enum.Font.Code
+    Title.TextSize = 14
+    Title.BackgroundTransparency = 1
+
+    local Input = Instance.new("TextBox", Main)
+    Input.Size = UDim2.new(0.8, 0, 0, 30)
+    Input.Position = UDim2.new(0.1, 0, 0, 120)
+    Input.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    Input.PlaceholderText = "INSIRA A CHAVE..."
+    Input.Text = ""
+    Input.TextColor3 = Color3.new(1, 1, 1)
+    Input.Font = Enum.Font.Code
+    Instance.new("UICorner", Input).CornerRadius = UDim.new(0, 4)
+
+    local Submit = Instance.new("TextButton", Main)
+    Submit.Text = "SUBMIT"
+    Submit.Size = UDim2.new(0.8, 0, 0, 25)
+    Submit.Position = UDim2.new(0.1, 0, 0, 160)
+    Submit.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Submit.TextColor3 = Color3.new(1,1,1)
+    Submit.Font = Enum.Font.Code
+    Instance.new("UICorner", Submit).CornerRadius = UDim.new(0, 4)
+    CreateRipple(Submit) -- [cite: 2]
+
+    local GetKey = Instance.new("TextButton", Main)
+    GetKey.Text = "GET KEY"
+    GetKey.Size = UDim2.new(0.8, 0, 0, 25)
+    GetKey.Position = UDim2.new(0.1, 0, 0, 190)
+    GetKey.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    GetKey.TextColor3 = Color3.fromRGB(150, 150, 150)
+    GetKey.Font = Enum.Font.Code
+    Instance.new("UICorner", GetKey).CornerRadius = UDim.new(0, 4)
+
+    -- [ LÓGICA DE VERIFICAÇÃO ]
+    Submit.MouseButton1Click:Connect(function()
+        if Input.Text == Key then
+            if writefile then writefile(FileName, Key) end -- Salva a Key [cite: 14]
+            KeyGui:Destroy()
+            SuccessAction()
+        else
+            luayV2:Notify({
+                Title = "Key System", 
+                Text = "Erro Key: {" .. Input.Text .. "} não é válida", 
+                Color = Color3.fromRGB(255, 50, 50),
+                Duration = 5
+            }) -- [cite: 8, 11]
+            Input.Text = ""
+        end
+    end)
+
+    GetKey.MouseButton1Click:Connect(function()
+        setclipboard(KeyURL)
+        luayV2:Notify({Title = "Key System", Text = "URL Copiada!", Color = Color3.fromRGB(200, 200, 200)})
+    end)
+end
+
+--[[ end ]]--
 function luayV2:GetValue(name)
     return self.Values[name]
 end
