@@ -469,26 +469,6 @@ function luayV2:Window(Config)
 
     if Enabled then task.spawn(Callback, true) end
 
-    -- =========================
-    -- controlar modo do toggle
-    -- =========================
-local Controller = {}
-
-function Controller:Set(Value)
-    if Enabled ~= Value then
-        Enabled = Value
-        Update()
-    end
-end
-
-function Controller:Get()
-    return Enabled
-end
-
--- guarda o controller no próprio botão
-TglBtn.Controller = Controller
-
-return Controller
 
         -- [[ INPUT ]] --
         function Elements:Input(Text, Placeholder, Callback)
@@ -940,6 +920,21 @@ function luayV2:KeySystem(Config)
         setclipboard(KeyURL)
         luayV2:Notify({Title = "Key System", Text = "URL Copiada!", Color = Color3.fromRGB(200, 200, 200)})
     end)
+end
+--[[ controlar toggle ]]--
+luayV2.ToggleControl = {
+    _map = {}
+}
+
+function luayV2.ToggleControl:Register(area, name, setter)
+    self._map[area] = self._map[area] or {}
+    self._map[area][name] = setter
+end
+
+function luayV2.ToggleControl:Set(area, name, value)
+    if self._map[area] and self._map[area][name] then
+        self._map[area][name](value)
+    end
 end
 
 --[[ end ]]--
