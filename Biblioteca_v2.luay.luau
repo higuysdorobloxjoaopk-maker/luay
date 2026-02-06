@@ -423,27 +423,23 @@ function luayV2:Window(Config)
             TglBtn.TextXAlignment = "Left"
             Instance.new("UICorner", TglBtn).CornerRadius = UDim.new(0, 4)
 
-            -- Trilha do Switch
             local Track = Instance.new("Frame", TglBtn)
             Track.Size = UDim2.new(0, 34, 0, 18)
             Track.Position = UDim2.new(1, -40, 0.5, -9)
             Track.BackgroundColor3 = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
             Track.BorderSizePixel = 0
-            local TrackCorner = Instance.new("UICorner", Track)
-            TrackCorner.CornerRadius = UDim.new(1, 0)
+            Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0)
 
-            -- Bolinha
             local Ball = Instance.new("Frame", Track)
             Ball.Size = UDim2.new(0, 14, 0, 14)
             Ball.Position = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
             Ball.BackgroundColor3 = Color3.new(1, 1, 1)
             Ball.BorderSizePixel = 0
-            local BallCorner = Instance.new("UICorner", Ball)
-            BallCorner.CornerRadius = UDim.new(1, 0)
+            Instance.new("UICorner", Ball).CornerRadius = UDim.new(1, 0)
 
             local function Update()
                 Window.ConfigData[Name][Text] = Enabled
-                SaveData()
+                if SaveData then SaveData() end
                 
                 local TargetPos = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
                 local TargetColor = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
@@ -454,7 +450,7 @@ function luayV2:Window(Config)
                 Callback(Enabled)
             end
 
-            -- [FUNÇÃO DE CONTROLE ADICIONADA]
+            -- Função que permite mudar o estado via script externo
             local function SetState(NewState)
                 if Enabled ~= NewState then
                     Enabled = NewState
@@ -476,7 +472,7 @@ function luayV2:Window(Config)
 
             if Enabled then task.spawn(Callback, true) end
             
-            -- Retorna o objeto para permitir MeuToggle.SetState(false)
+            -- Importante: Retorna para o script mas NÃO fecha a função Area
             return {SetState = SetState}
         end
 
