@@ -485,6 +485,9 @@ function Controller:Get()
     return Enabled
 end
 
+-- guarda o controller no próprio botão
+TglBtn.Controller = Controller
+
 return Controller
 
         -- [[ INPUT ]] --
