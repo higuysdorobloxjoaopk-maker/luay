@@ -470,7 +470,7 @@ function luayV2:Window(Config)
     if Enabled then task.spawn(Callback, true) end
 
     -- =========================
-    -- script control mode toggle
+    -- controlar modo do toggle
     -- =========================
 local Controller = {}
 
