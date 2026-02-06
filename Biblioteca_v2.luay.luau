@@ -469,6 +469,14 @@ function luayV2:Window(Config)
 
     if Enabled then task.spawn(Callback, true) end
 
+-- REGISTRO NO CONTROLE NÃO-GRÁFICO
+luayV2.ToggleControl:Register(Name, Text, function(Value)
+    if Enabled ~= Value then
+        Enabled = Value
+        Update()
+    end
+end)
+
 
         -- [[ INPUT ]] --
         function Elements:Input(Text, Placeholder, Callback)
