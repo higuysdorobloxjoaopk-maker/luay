@@ -470,19 +470,22 @@ function luayV2:Window(Config)
     if Enabled then task.spawn(Callback, true) end
 
     -- =========================
-    -- ADIÇÃO
+    -- script control mode toggle
     -- =========================
+local Controller = {}
 
-    Window.ToggleControllers = Window.ToggleControllers or {}
-    Window.ToggleControllers[Name] = Window.ToggleControllers[Name] or {}
-
-    Window.ToggleControllers[Name][Text] = function(State)
-        if Enabled ~= State then
-            Enabled = State
-            Update()
-        end
+function Controller:Set(Value)
+    if Enabled ~= Value then
+        Enabled = Value
+        Update()
     end
 end
+
+function Controller:Get()
+    return Enabled
+end
+
+return Controller
 
         -- [[ INPUT ]] --
         function Elements:Input(Text, Placeholder, Callback)
