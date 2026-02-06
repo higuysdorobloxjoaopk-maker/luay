@@ -408,77 +408,77 @@ function luayV2:Window(Config)
 
         -- [[ TOGGLE ESTILO IOS/MOBILE BOLINHA ]] --
         function Elements:Toggle(Text, Default, Callback)
-    local Saved = Window.ConfigData[Name][Text]
-    local Enabled = (Saved ~= nil and Saved) or Default or false
-    
-    local TglBtn = Instance.new("TextButton", AreaFrame)
-    TglBtn.Name = Text .. "_Tgl"
-    TglBtn.Size = UDim2.new(0.96, 0, 0, 32)
-    TglBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    TglBtn.BorderSizePixel = 0
-    TglBtn.Text = "  " .. Text
-    TglBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    TglBtn.Font = Enum.Font.Code
-    TglBtn.TextSize = 11
-    TglBtn.TextXAlignment = "Left"
-    Instance.new("UICorner", TglBtn).CornerRadius = UDim.new(0, 4)
+            local Saved = Window.ConfigData[Name][Text]
+            local Enabled = (Saved ~= nil and Saved) or Default or false
+            
+            local TglBtn = Instance.new("TextButton", AreaFrame)
+            TglBtn.Name = Text .. "_Tgl"
+            TglBtn.Size = UDim2.new(0.96, 0, 0, 32)
+            TglBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+            TglBtn.BorderSizePixel = 0
+            TglBtn.Text = "  " .. Text
+            TglBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
+            TglBtn.Font = Enum.Font.Code
+            TglBtn.TextSize = 11
+            TglBtn.TextXAlignment = "Left"
+            Instance.new("UICorner", TglBtn).CornerRadius = UDim.new(0, 4)
 
-    -- Trilha do Switch
-    local Track = Instance.new("Frame", TglBtn)
-    Track.Size = UDim2.new(0, 34, 0, 18)
-    Track.Position = UDim2.new(1, -40, 0.5, -9)
-    Track.BackgroundColor3 = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
-    Track.BorderSizePixel = 0
-    local TrackCorner = Instance.new("UICorner", Track)
-    TrackCorner.CornerRadius = UDim.new(1, 0)
+            -- Trilha do Switch
+            local Track = Instance.new("Frame", TglBtn)
+            Track.Size = UDim2.new(0, 34, 0, 18)
+            Track.Position = UDim2.new(1, -40, 0.5, -9)
+            Track.BackgroundColor3 = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
+            Track.BorderSizePixel = 0
+            local TrackCorner = Instance.new("UICorner", Track)
+            TrackCorner.CornerRadius = UDim.new(1, 0)
 
-    -- Bolinha
-    local Ball = Instance.new("Frame", Track)
-    Ball.Size = UDim2.new(0, 14, 0, 14)
-    Ball.Position = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-    Ball.BackgroundColor3 = Color3.new(1, 1, 1)
-    Ball.BorderSizePixel = 0
-    local BallCorner = Instance.new("UICorner", Ball)
-    BallCorner.CornerRadius = UDim.new(1, 0)
+            -- Bolinha
+            local Ball = Instance.new("Frame", Track)
+            Ball.Size = UDim2.new(0, 14, 0, 14)
+            Ball.Position = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+            Ball.BackgroundColor3 = Color3.new(1, 1, 1)
+            Ball.BorderSizePixel = 0
+            local BallCorner = Instance.new("UICorner", Ball)
+            BallCorner.CornerRadius = UDim.new(1, 0)
 
-    local function Update()
-        Window.ConfigData[Name][Text] = Enabled
-        SaveData()
-        
-        local TargetPos = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-        local TargetColor = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
-        
-        TweenService:Create(Track, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {BackgroundColor3 = TargetColor}):Play()
-        Ball:TweenPosition(TargetPos, "Out", "Quart", 0.3, true)
-        
-        Callback(Enabled)
-    end
+            local function Update()
+                Window.ConfigData[Name][Text] = Enabled
+                SaveData()
+                
+                local TargetPos = Enabled and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+                local TargetColor = Enabled and Window.Theme or Color3.fromRGB(45, 45, 45)
+                
+                TweenService:Create(Track, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {BackgroundColor3 = TargetColor}):Play()
+                Ball:TweenPosition(TargetPos, "Out", "Quart", 0.3, true)
+                
+                Callback(Enabled)
+            end
 
-    -- [NOVA FUNÇÃO PARA CONTROLE EXTERNO]
-    -- Permite forçar o estado do toggle via script
-    local function SetState(NewState)
-        if Enabled ~= NewState then
-            Enabled = NewState
-            Update()
+            -- [FUNÇÃO DE CONTROLE ADICIONADA]
+            local function SetState(NewState)
+                if Enabled ~= NewState then
+                    Enabled = NewState
+                    Update()
+                end
+            end
+
+            TglBtn.MouseButton1Click:Connect(function()
+                Enabled = not Enabled
+                Update()
+            end)
+
+            table.insert(Window.Toggles, function(Val)
+                if Val == false and Enabled then
+                    Enabled = false
+                    Update()
+                end
+            end)
+
+            if Enabled then task.spawn(Callback, true) end
+            
+            -- Retorna o objeto para permitir MeuToggle.SetState(false)
+            return {SetState = SetState}
         end
-    end
-
-    TglBtn.MouseButton1Click:Connect(function()
-        Enabled = not Enabled
-        Update()
-    end)
-
-    table.insert(Window.Toggles, function(Val)
-        if Val == false and Enabled then
-            SetState(false) -- Usando a função interna para garantir a transição
-        end
-    end)
-
-    if Enabled then task.spawn(Callback, true) end
-    
-    -- Retorna a função para desativar externamente
-    return {SetState = SetState}
-end
 
         -- [[ INPUT ]] --
         function Elements:Input(Text, Placeholder, Callback)
