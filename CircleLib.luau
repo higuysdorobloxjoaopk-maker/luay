@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-
 local Library = {}
 
 local CONFIG = {
@@ -29,6 +28,7 @@ CONFIG.InnerRadius2 = CONFIG.InnerRadius * 2
 
 local Areas = {}
 local Toggles = {}
+local SlotButtons = {}
 local CurrentWindow
 
 function Library:Window(name)
@@ -82,7 +82,6 @@ rotationWrapper.BackgroundTransparency = 1
 rotationWrapper.Parent = group
 
 local numberLabels = {}
-local slotButtons = {}
 
 for i=1,8 do
 local angle = (360/8)*(i-1)
@@ -119,6 +118,7 @@ txt.Font = CONFIG.Font
 txt.TextSize = CONFIG.FontSize
 txt.AnchorPoint = Vector2.new(0.5,0.5)
 txt.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+12), 0.5, math.sin(rad)*(CONFIG.InnerRadius+12))
+txt.ZIndex = 12
 txt.Parent = rotationWrapper
 numberLabels[i] = txt
 
@@ -131,9 +131,10 @@ slot.Image = "rbxassetid://3926305904"
 slot.ImageRectOffset = Vector2.new(964,324)
 slot.ImageRectSize = Vector2.new(36,36)
 slot.ImageColor3 = Color3.new(1,1,1)
+slot.ZIndex = 12
 slot.Parent = rotationWrapper
 
-slotButtons[i] = slot
+SlotButtons[i] = slot
 end
 
 local centerCircle = Instance.new("TextButton")
@@ -176,7 +177,7 @@ end
 
 local function updateSlot(id)
 local localId = ((id-1)%8)+1
-local btn = slotButtons[localId]
+local btn = SlotButtons[localId]
 if Toggles[id] then
 TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = CONFIG.Colors.Active}):Play()
 else
@@ -197,7 +198,7 @@ end)
 end
 
 for i=1,8 do
-slotButtons[i].MouseButton1Click:Connect(function()
+SlotButtons[i].MouseButton1Click:Connect(function()
 local id = (currentPage-1)*8+i
 local data = Areas[id]
 if not data then return end
@@ -206,7 +207,7 @@ Toggles[id] = not Toggles[id]
 updateSlot(id)
 data.Callback(Toggles[id])
 else
-flash(slotButtons[i])
+flash(SlotButtons[i])
 data.Callback()
 end
 end)
@@ -255,7 +256,6 @@ end)
 
 function self:Area(title)
 local area = {}
-area.Title = title
 function area:Button(cfg)
 table.insert(Areas,{
 Name = cfg.name,
@@ -287,7 +287,7 @@ return self
 end
 
 function Library.Toggle(name,state)
-for id,data in pairs(Areas) do
+for id,data in ipairs(Areas) do
 if data.Name == name and data.Type == "toggle" then
 Toggles[id] = state
 updateSlot(id)
