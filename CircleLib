@@ -1,0 +1,198 @@
+--[[ CIRCLE UI LIBRARY - LOADSTRING READY Design e lógica preservados do script original Uso:
+
+local UI = loadstring(game:HttpGet("URL"))()
+
+local win = UI:Window({Name="Minha Janela"}) local area = win:Area({Title="Combate"})
+
+area:Toggle({Name="Exemplo", Image="rbxassetid://91829383", Default=false, Callback=function(state) print(state) end})
+
+area:Button({Name="Teste", Image="rbxassetid://7276262", Callback=function() print("click") end}) ]]
+
+local Players = game:GetService("Players") local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+
+local LIB = {} LIB.__index = LIB
+
+local CONFIG = { Radius = 134, InnerRadius = 55, FontSize = 13, Font = Enum.Font.GothamBold, Colors = { Background = Color3.fromRGB(18,18,18), Separator = Color3.fromRGB(255,255,255), Text = Color3.fromRGB(255,255,255), Error = Color3.fromRGB(255,50,50), Active = Color3.fromRGB(0,140,255) }, Alpha = { Background = 0.12, SeparatorLine = 0.5, Border = 0.6 } }
+
+local function deepCopy(t) local r = {} for k,v in pairs(t) do if type(v)=="table" then r[k]=deepCopy(v) else r[k]=v end end return r end
+
+function LIB:Window(cfg) local self = setmetatable({},LIB)
+
+self.Areas = {}
+self.AreaNames = {}
+self.CurrentArea = 1
+self.Toggles = {}
+self.Buttons = {}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CircleUILibrary"
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = player:WaitForChild("PlayerGui")
+self.Gui = screenGui
+
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.fromOffset(45,45)
+openButton.Position = UDim2.new(0,25,0.5,-22)
+openButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+openButton.BackgroundTransparency = 0.2
+openButton.Text = "☺"
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.TextSize = 25
+openButton.Parent = screenGui
+Instance.new("UICorner",openButton).CornerRadius = UDim.new(1,0)
+Instance.new("UIStroke",openButton).Color = Color3.new(1,1,1)
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Visible = false
+mainFrame.Size = UDim2.fromOffset(CONFIG.Radius*2,CONFIG.Radius*2)
+mainFrame.AnchorPoint = Vector2.new(0.5,0.5)
+mainFrame.Position = UDim2.fromScale(0.5,0.5)
+mainFrame.BackgroundTransparency = 1
+mainFrame.Parent = screenGui
+self.Main = mainFrame
+
+local group = Instance.new("CanvasGroup")
+group.Size = UDim2.fromScale(1,1)
+group.BackgroundTransparency = 1
+group.GroupTransparency = 1
+group.Parent = mainFrame
+self.Group = group
+
+local outerBg = Instance.new("Frame")
+outerBg.Size = UDim2.fromScale(1,1)
+outerBg.BackgroundColor3 = CONFIG.Colors.Background
+outerBg.BackgroundTransparency = CONFIG.Alpha.Background
+outerBg.Parent = group
+Instance.new("UICorner",outerBg).CornerRadius = UDim.new(1,0)
+
+local outerStroke = Instance.new("UIStroke",outerBg)
+outerStroke.Color = CONFIG.Colors.Separator
+outerStroke.Transparency = CONFIG.Alpha.Border
+
+local rotationWrapper = Instance.new("Frame")
+rotationWrapper.Size = UDim2.fromScale(1,1)
+rotationWrapper.BackgroundTransparency = 1
+rotationWrapper.Parent = group
+self.RotationWrapper = rotationWrapper
+
+self.Slots = {}
+self.Numbers = {}
+
+for i=1,8 do
+    local angle = (360/8)*(i-1)
+    local rad = math.rad(angle-90)
+
+    local pivot = Instance.new("Frame")
+    pivot.Size = UDim2.fromScale(0,0)
+    pivot.Position = UDim2.fromScale(0.5,0.5)
+    pivot.Rotation = angle + (360/16)
+    pivot.BackgroundTransparency = 1
+    pivot.Parent = rotationWrapper
+
+    local line = Instance.new("Frame")
+    line.BackgroundColor3 = CONFIG.Colors.Separator
+    line.BorderSizePixel = 0
+    line.Size = UDim2.new(0,1,0,(CONFIG.Radius-CONFIG.InnerRadius)*0.6)
+    line.Position = UDim2.new(0.5,0,0,-CONFIG.InnerRadius-5)
+    line.AnchorPoint = Vector2.new(0.5,1)
+    line.Parent = pivot
+
+    local grad = Instance.new("UIGradient",line)
+    grad.Rotation = -90
+    grad.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0,0.2),
+        NumberSequenceKeypoint.new(1,1)
+    })
+
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.fromOffset(15,15)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = CONFIG.Colors.Text
+    txt.Font = CONFIG.Font
+    txt.TextSize = CONFIG.FontSize
+    txt.AnchorPoint = Vector2.new(0.5,0.5)
+    txt.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+12), 0.5, math.sin(rad)*(CONFIG.InnerRadius+12))
+    txt.Parent = rotationWrapper
+    self.Numbers[i] = txt
+
+    local slot = Instance.new("ImageButton")
+    slot.Size = UDim2.fromOffset(36,36)
+    slot.AnchorPoint = Vector2.new(0.5,0.5)
+    slot.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+40), 0.5, math.sin(rad)*(CONFIG.InnerRadius+40))
+    slot.BackgroundTransparency = 1
+    slot.Image = "rbxassetid://3926305904"
+    slot.ImageRectOffset = Vector2.new(964,324)
+    slot.ImageRectSize = Vector2.new(36,36)
+    slot.ImageColor3 = Color3.new(1,1,1)
+    slot.Parent = rotationWrapper
+    self.Slots[i] = slot
+end
+
+local centerCircle = Instance.new("TextButton")
+centerCircle.Size = UDim2.fromOffset(CONFIG.InnerRadius*2,CONFIG.InnerRadius*2)
+centerCircle.Position = UDim2.fromScale(0.5,0.5)
+centerCircle.AnchorPoint = Vector2.new(0.5,0.5)
+centerCircle.BackgroundColor3 = CONFIG.Colors.Background
+centerCircle.BackgroundTransparency = 0.05
+centerCircle.Text = ""
+centerCircle.ZIndex = 10
+centerCircle.Parent = group
+Instance.new("UICorner",centerCircle).CornerRadius = UDim.new(1,0)
+
+local innerStroke = Instance.new("UIStroke",centerCircle)
+innerStroke.Color = CONFIG.Colors.Separator
+innerStroke.Transparency = CONFIG.Alpha.Border
+
+local centerText = Instance.new("TextLabel")
+centerText.Size = UDim2.fromScale(0.8,0.8)
+centerText.Position = UDim2.fromScale(0.5,0.5)
+centerText.AnchorPoint = Vector2.new(0.5,0.5)
+centerText.BackgroundTransparency = 1
+centerText.TextColor3 = CONFIG.Colors.Text
+centerText.Font = Enum.Font.GothamMedium
+centerText.TextSize = 12
+centerText.ZIndex = 11
+centerText.Parent = centerCircle
+self.CenterText = centerText
+
+self.IsOpen = false
+self.Rotation = 0
+
+local function toggle()
+    self.IsOpen = not self.IsOpen
+    if self.IsOpen then
+        mainFrame.Visible = true
+        mainFrame.Size = UDim2.fromOffset(0,0)
+        group.GroupTransparency = 1
+        TweenService:Create(mainFrame,TweenInfo.new(0.4,Enum.EasingStyle.Back),{Size=UDim2.fromOffset(CONFIG.Radius*2,CONFIG.Radius*2)}):Play()
+        TweenService:Create(group,TweenInfo.new(0.3),{GroupTransparency=0}):Play()
+    else
+        local tw = TweenService:Create(mainFrame,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.fromOffset(0,0)})
+        TweenService:Create(group,TweenInfo.new(0.2),{GroupTransparency=1}):Play()
+        tw:Play()
+        tw.Completed:Wait()
+        if not self.IsOpen then mainFrame.Visible=false end
+    end
+end
+
+openButton.MouseButton1Click:Connect(toggle)
+
+centerCircle.MouseButton1Click:Connect(function()
+    local mouse = player:GetMouse()
+    local centerPos = centerCircle.AbsolutePosition + (centerCircle.AbsoluteSize/2)
+    if mouse.X < centerPos.X then self:Navigate(-1) else self:Navigate(1) end
+end)
+
+return self
+
+end
+
+function LIB:Navigate(dir) local maxPages = math.max(1, math.ceil(#self.Areas/1)) local n = self.CurrentArea + dir if n<1 or n>maxPages then return end self.CurrentArea = n self.Rotation += 360*dir TweenService:Create(self.RotationWrapper,TweenInfo.new(0.6,Enum.EasingStyle.Quart),{Rotation=self.Rotation}):Play() task.delay(0.25,function() self.CenterText.Text = self.AreaNames[self.CurrentArea] self:Refresh() end) end
+
+function LIB:Refresh() local area = self.Areas[self.CurrentArea] for i=1,8 do local btn = self.Slots[i] local data = area and area.Items[i] if data then btn.Visible = true btn.Image = data.Image btn.ImageColor3 = data.Type=="Toggle" and (data.State and CONFIG.Colors.Active or Color3.new(1,1,1)) or Color3.new(1,1,1) else btn.Visible = false end end end
+
+function LIB:Area(cfg) local area = {Title=cfg.Title, Items={}} table.insert(self.Areas,area) table.insert(self.AreaNames,cfg.Title) if #self.Areas==1 then self.CenterText.Text = cfg.Title end return setmetatable(area,{ __index = { Button = function(a,data) table.insert(a.Items,{Type="Button",Name=data.Name,Image=data.Image,Callback=data.Callback}) self:Refresh() end, Toggle = function(a,data) table.insert(a.Items,{Type="Toggle",Name=data.Name,Image=data.Image,Callback=data.Callback,State=data.Default or false}) self:Refresh() end } }) end
+
+return setmetatable({}, {__call=function(_,...) return LIB:Window(...) end})
