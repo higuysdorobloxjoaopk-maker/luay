@@ -1,0 +1,152 @@
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local RadialLib = {}
+RadialLib.__index = RadialLib
+
+function RadialLib.new(title)
+    local self = setmetatable({}, RadialLib)
+    
+    -- Container Principal
+    self.ScreenGui = Instance.new("ScreenGui")
+    self.ScreenGui.Name = "DeltaRadialMenu"
+    self.ScreenGui.Parent = PlayerGui
+    self.ScreenGui.ResetOnSpawn = false
+    
+    -- Botão de Abrir/Fechar (Canto Superior)
+    self.ToggleButton = Instance.new("TextButton")
+    self.ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+    self.ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+    self.ToggleButton.Text = "Menu"
+    self.ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    self.ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+    self.ToggleButton.Parent = self.ScreenGui
+    
+    -- Frame da Roda
+    self.MainFrame = Instance.new("Frame")
+    self.MainFrame.Size = UDim2.new(0, 400, 0, 400)
+    self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.MainFrame.BackgroundTransparency = 1
+    self.MainFrame.Visible = false
+    self.MainFrame.Parent = self.ScreenGui
+    
+    -- Círculo Central
+    self.Center = Instance.new("Frame")
+    self.Center.Size = UDim2.new(0, 150, 0, 150)
+    self.Center.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.Center.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.Center.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    self.Center.ZIndex = 5
+    self.Center.Parent = self.MainFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = self.Center
+    
+    self.TitleLabel = Instance.new("TextLabel")
+    self.TitleLabel.Size = UDim2.new(0.8, 0, 0.8, 0)
+    self.TitleLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.TitleLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.TitleLabel.BackgroundTransparency = 1
+    self.TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+    self.TitleLabel.TextWrapped = true
+    self.TitleLabel.Text = title or "Selecione"
+    self.TitleLabel.Font = Enum.Font.SourceSansBold
+    self.TitleLabel.TextSize = 20
+    self.TitleLabel.Parent = self.Center
+    
+    self.Buttons = {}
+    self.CurrentPage = 1
+    self.IsOpen = false
+    
+    -- Lógica de Abrir/Fechar
+    self.ToggleButton.MouseButton1Click:Connect(function()
+        self:Toggle()
+    end)
+    
+    return self
+end
+
+function RadialLib:Toggle()
+    self.IsOpen = not self.IsOpen
+    if self.IsOpen then
+        self.MainFrame.Visible = true
+        self.MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 400, 0, 400)}):Play()
+    else
+        local tween = TweenService:Create(self.MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 0)})
+        tween:Play()
+        tween.Completed:Wait()
+        if not self.IsOpen then self.MainFrame.Visible = false end
+    end
+end
+
+function RadialLib:AddButton(text, icon, callback, isToggle)
+    local btnData = {
+        Text = text,
+        Icon = icon,
+        Callback = callback,
+        IsToggle = isToggle or false,
+        State = false
+    }
+    table.insert(self.Buttons, btnData)
+    self:RenderPage()
+end
+
+function RadialLib:RenderPage()
+    -- Limpar botões antigos da interface
+    for _, child in pairs(self.MainFrame:GetChildren()) do
+        if child:IsA("TextButton") and child.Name ~= "Nav" then child:Destroy() end
+    end
+
+    local startIdx = (self.CurrentPage - 1) * 8 + 1
+    local buttonsToShow = {}
+    for i = startIdx, startIdx + 7 do
+        if self.Buttons[i] then table.insert(buttonsToShow, self.Buttons[i]) end
+    end
+
+    -- Criar botões visuais em círculo
+    for i, data in ipairs(buttonsToShow) do
+        local angle = (i - 1) * (360 / 8) - 90
+        local rad = math.rad(angle)
+        
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(0, 80, 0, 80)
+        b.Position = UDim2.new(0.5 + math.cos(rad)*0.35, -40, 0.5 + math.sin(rad)*0.35, -40)
+        b.Text = data.Text
+        b.BackgroundColor3 = data.State and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
+        b.Parent = self.MainFrame
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = b
+
+        if data.Icon then
+            local img = Instance.new("ImageLabel")
+            img.Size = UDim2.new(0.6, 0, 0.6, 0)
+            img.Position = UDim2.new(0.2, 0, 0.1, 0)
+            img.Image = data.Icon
+            img.BackgroundTransparency = 1
+            img.Parent = b
+        end
+
+        b.MouseButton1Click:Connect(function()
+            if data.IsToggle then
+                data.State = not data.State
+                b.BackgroundColor3 = data.State and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
+            end
+            data.Callback(data.State)
+        end)
+    end
+    
+    -- Lógica de Setas (Exemplo simplificado de navegação)
+    if #self.Buttons > 8 then
+       -- Aqui entraria a lógica das setas e animação de rotação (Rotation property do MainFrame)
+    end
+end
+
+return RadialLib
