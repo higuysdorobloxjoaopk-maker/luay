@@ -1,152 +1,206 @@
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui")
 
 local RadialLib = {}
 RadialLib.__index = RadialLib
 
-function RadialLib.new(title)
+function RadialLib.new(titleText)
     local self = setmetatable({}, RadialLib)
     
-    -- Container Principal
-    self.ScreenGui = Instance.new("ScreenGui")
-    self.ScreenGui.Name = "DeltaRadialMenu"
-    self.ScreenGui.Parent = PlayerGui
-    self.ScreenGui.ResetOnSpawn = false
-    
-    -- Botão de Abrir/Fechar (Canto Superior)
-    self.ToggleButton = Instance.new("TextButton")
-    self.ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-    self.ToggleButton.Position = UDim2.new(0, 10, 0, 10)
-    self.ToggleButton.Text = "Menu"
-    self.ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    self.ToggleButton.TextColor3 = Color3.new(1, 1, 1)
-    self.ToggleButton.Parent = self.ScreenGui
-    
-    -- Frame da Roda
-    self.MainFrame = Instance.new("Frame")
-    self.MainFrame.Size = UDim2.new(0, 400, 0, 400)
-    self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.MainFrame.BackgroundTransparency = 1
-    self.MainFrame.Visible = false
-    self.MainFrame.Parent = self.ScreenGui
-    
-    -- Círculo Central
-    self.Center = Instance.new("Frame")
-    self.Center.Size = UDim2.new(0, 150, 0, 150)
-    self.Center.Position = UDim2.new(0.5, 0, 0.5, 0)
-    self.Center.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.Center.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    self.Center.ZIndex = 5
-    self.Center.Parent = self.MainFrame
+    -- Container Principal (Protegido contra reset de spawn)
+    self.Gui = Instance.new("ScreenGui")
+    self.Gui.Name = "DeltaRadial_Lib"
+    self.Gui.Parent = CoreGui
+    self.Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    -- Botão de Toggle (Canto Superior)
+    self.MainToggle = Instance.new("TextButton")
+    self.MainToggle.Name = "ControlBtn"
+    self.MainToggle.Parent = self.Gui
+    self.MainToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    self.MainToggle.BorderSizePixel = 0
+    self.MainToggle.Position = UDim2.new(0, 10, 0, 10)
+    self.MainToggle.Size = UDim2.new(0, 45, 0, 45)
+    self.MainToggle.Text = "R"
+    self.MainToggle.TextColor3 = Color3.new(1, 1, 1)
+    self.MainToggle.Font = Enum.Font.GothamBold
+    self.MainToggle.TextSize = 20
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(1, 0)
-    corner.Parent = self.Center
-    
-    self.TitleLabel = Instance.new("TextLabel")
-    self.TitleLabel.Size = UDim2.new(0.8, 0, 0.8, 0)
-    self.TitleLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
-    self.TitleLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.TitleLabel.BackgroundTransparency = 1
-    self.TitleLabel.TextColor3 = Color3.new(1, 1, 1)
-    self.TitleLabel.TextWrapped = true
-    self.TitleLabel.Text = title or "Selecione"
-    self.TitleLabel.Font = Enum.Font.SourceSansBold
-    self.TitleLabel.TextSize = 20
-    self.TitleLabel.Parent = self.Center
-    
-    self.Buttons = {}
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = self.MainToggle
+
+    -- Frame da Roda (Onde tudo acontece)
+    self.WheelFrame = Instance.new("Frame")
+    self.WheelFrame.Name = "Wheel"
+    self.WheelFrame.Parent = self.Gui
+    self.WheelFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.WheelFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    self.WheelFrame.BackgroundTransparency = 1
+    self.WheelFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.WheelFrame.Size = UDim2.new(0, 0, 0, 0) -- Começa invisível
+    self.WheelFrame.Visible = false
+
+    -- Centro da Roda
+    self.Center = Instance.new("Frame")
+    self.Center.Name = "Center"
+    self.Center.Parent = self.WheelFrame
+    self.Center.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.Center.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    self.Center.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.Center.Size = UDim2.new(0, 140, 0, 140)
+    self.Center.ZIndex = 10
+
+    local centerCorner = Instance.new("UICorner")
+    centerCorner.CornerRadius = UDim.new(1, 0)
+    centerCorner.Parent = self.Center
+
+    self.Title = Instance.new("TextLabel")
+    self.Title.Parent = self.Center
+    self.Title.Size = UDim2.new(1, -20, 1, -20)
+    self.Title.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.Title.AnchorPoint = Vector2.new(0.5, 0.5)
+    self.Title.BackgroundTransparency = 1
+    self.Title.Text = titleText or "Selecione um emote"
+    self.Title.TextColor3 = Color3.new(1, 1, 1)
+    self.Title.Font = Enum.Font.GothamMedium
+    self.Title.TextSize = 18
+    self.Title.TextWrapped = true
+    self.Title.ZIndex = 11
+
+    -- Variáveis de Estado
+    self.Items = {}
     self.CurrentPage = 1
     self.IsOpen = false
-    
-    -- Lógica de Abrir/Fechar
-    self.ToggleButton.MouseButton1Click:Connect(function()
-        self:Toggle()
+    self.IsSpinning = false
+
+    -- Evento de Abrir/Fechar
+    self.MainToggle.MouseButton1Click:Connect(function()
+        self:ToggleVisibility()
     end)
-    
+
     return self
 end
 
-function RadialLib:Toggle()
+function RadialLib:ToggleVisibility()
     self.IsOpen = not self.IsOpen
     if self.IsOpen then
-        self.MainFrame.Visible = true
-        self.MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        TweenService:Create(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 400, 0, 400)}):Play()
+        self.WheelFrame.Visible = true
+        TweenService:Create(self.WheelFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back), {Size = UDim2.new(0, 420, 0, 420)}):Play()
     else
-        local tween = TweenService:Create(self.MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 0)})
-        tween:Play()
-        tween.Completed:Wait()
-        if not self.IsOpen then self.MainFrame.Visible = false end
+        local t = TweenService:Create(self.WheelFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)})
+        t:Play()
+        t.Completed:Wait()
+        if not self.IsOpen then self.WheelFrame.Visible = false end
     end
 end
 
-function RadialLib:AddButton(text, icon, callback, isToggle)
-    local btnData = {
-        Text = text,
-        Icon = icon,
-        Callback = callback,
+function RadialLib:AddButton(name, icon, isToggle, callback)
+    table.insert(self.Items, {
+        Name = name,
+        Icon = icon or "",
         IsToggle = isToggle or false,
+        Callback = callback,
         State = false
-    }
-    table.insert(self.Buttons, btnData)
-    self:RenderPage()
+    })
+    self:Refresh()
 end
 
-function RadialLib:RenderPage()
-    -- Limpar botões antigos da interface
-    for _, child in pairs(self.MainFrame:GetChildren()) do
-        if child:IsA("TextButton") and child.Name ~= "Nav" then child:Destroy() end
+function RadialLib:Refresh()
+    -- Limpa botões antigos (exceto o centro)
+    for _, v in pairs(self.WheelFrame:GetChildren()) do
+        if v.Name == "ItemBtn" or v.Name == "NavBtn" then v:Destroy() end
     end
 
-    local startIdx = (self.CurrentPage - 1) * 8 + 1
-    local buttonsToShow = {}
-    for i = startIdx, startIdx + 7 do
-        if self.Buttons[i] then table.insert(buttonsToShow, self.Buttons[i]) end
+    local start = (self.CurrentPage - 1) * 8 + 1
+    local totalItems = #self.Items
+    
+    -- Criar Setas se necessário
+    if totalItems > 8 then
+        self:CreateNavButton("Next", 1)
+        self:CreateNavButton("Back", -1)
     end
 
-    -- Criar botões visuais em círculo
-    for i, data in ipairs(buttonsToShow) do
-        local angle = (i - 1) * (360 / 8) - 90
+    -- Renderizar até 8 itens
+    for i = 0, 7 do
+        local item = self.Items[start + i]
+        if not item then break end
+
+        local angle = (i * 45) - 90
         local rad = math.rad(angle)
         
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0, 80, 0, 80)
-        b.Position = UDim2.new(0.5 + math.cos(rad)*0.35, -40, 0.5 + math.sin(rad)*0.35, -40)
-        b.Text = data.Text
-        b.BackgroundColor3 = data.State and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
-        b.Parent = self.MainFrame
+        local btn = Instance.new("ImageButton")
+        btn.Name = "ItemBtn"
+        btn.Parent = self.WheelFrame
+        btn.Size = UDim2.new(0, 75, 0, 75)
+        btn.AnchorPoint = Vector2.new(0.5, 0.5)
+        btn.Position = UDim2.new(0.5 + math.cos(rad) * 0.38, 0, 0.5 + math.sin(rad) * 0.38, 0)
+        btn.BackgroundColor3 = item.State and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(45, 45, 45)
+        btn.BackgroundTransparency = 0.2
+        btn.Image = item.Icon
         
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = b
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(1, 0)
+        c.Parent = btn
 
-        if data.Icon then
-            local img = Instance.new("ImageLabel")
-            img.Size = UDim2.new(0.6, 0, 0.6, 0)
-            img.Position = UDim2.new(0.2, 0, 0.1, 0)
-            img.Image = data.Icon
-            img.BackgroundTransparency = 1
-            img.Parent = b
-        end
+        local label = Instance.new("TextLabel")
+        label.Parent = btn
+        label.Size = UDim2.new(1, 0, 0, 20)
+        label.Position = UDim2.new(0.5, 0, 1, 5)
+        label.AnchorPoint = Vector2.new(0.5, 0)
+        label.BackgroundTransparency = 1
+        label.Text = item.Name
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 12
 
-        b.MouseButton1Click:Connect(function()
-            if data.IsToggle then
-                data.State = not data.State
-                b.BackgroundColor3 = data.State and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(40, 40, 40)
+        btn.MouseButton1Click:Connect(function()
+            if item.IsToggle then
+                item.State = not item.State
+                btn.BackgroundColor3 = item.State and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(45, 45, 45)
             end
-            data.Callback(data.State)
+            item.Callback(item.State)
         end)
     end
+end
+
+function RadialLib:CreateNavButton(dir, val)
+    local btn = Instance.new("TextButton")
+    btn.Name = "NavBtn"
+    btn.Parent = self.WheelFrame
+    btn.Size = UDim2.new(0, 40, 0, 40)
+    btn.AnchorPoint = Vector2.new(0.5, 0.5)
+    btn.Text = (dir == "Next") and ">" or "<"
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.TextColor3 = Color3.new(1, 1, 1)
     
-    -- Lógica de Setas (Exemplo simplificado de navegação)
-    if #self.Buttons > 8 then
-       -- Aqui entraria a lógica das setas e animação de rotação (Rotation property do MainFrame)
+    -- Posicionamento das setas (Canto inferior)
+    if dir == "Next" then
+        btn.Position = UDim2.new(0.9, 0, 0.9, 0)
+    else
+        btn.Position = UDim2.new(0.1, 0, 0.9, 0)
     end
+
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+
+    btn.MouseButton1Click:Connect(function()
+        if self.IsSpinning then return end
+        self.IsSpinning = true
+        
+        -- Animação de Giro
+        local targetRotation = (val == 1) and 360 or -360
+        local spin = TweenService:Create(self.WheelFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {Rotation = targetRotation})
+        
+        spin:Play()
+        spin.Completed:Connect(function()
+            self.WheelFrame.Rotation = 0
+            self.CurrentPage = self.CurrentPage + val
+            if self.CurrentPage < 1 then self.CurrentPage = 1 end
+            self:Refresh()
+            self.IsSpinning = false
+        end)
+    end)
 end
 
 return RadialLib
