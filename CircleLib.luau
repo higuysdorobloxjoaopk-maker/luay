@@ -1,230 +1,298 @@
---[[
-    circle.et.library
-    Design: Radial Menu V5
-]]
-
-local circle = { et = {} }
-circle.et.library = {}
-circle.et.library.__index = circle.et.library
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
 
-function circle.et.library.new(data)
-    local self = setmetatable({}, circle.et.library)
-    
-    self.Title = data.name or "Minha Janela"
-    self.Areas = {}
-    self.Toggles = {}
-    self.CurrentPageIndex = 1
-    self.IsOpen = false
-    self.RotationValue = 0
-    
-    self.Config = {
-        Radius = 134,
-        InnerRadius = 55,
-        Colors = {
-            Background = Color3.fromRGB(18,18,18),
-            Separator = Color3.fromRGB(255,255,255),
-            Active = Color3.fromRGB(0,140,255),
-            Error = Color3.fromRGB(255,50,50)
-        }
-    }
-    
-    self:Init()
-    return self
+local Library = {}
+
+local CONFIG = {
+Radius = 134,
+InnerRadius = 55,
+FontSize = 13,
+Font = Enum.Font.GothamBold,
+Colors = {
+Background = Color3.fromRGB(18,18,18),
+Separator = Color3.fromRGB(255,255,255),
+Text = Color3.fromRGB(255,255,255),
+Error = Color3.fromRGB(255,50,50),
+Active = Color3.fromRGB(0,140,255)
+},
+Alpha = {
+Background = 0.12,
+SeparatorLine = 0.5,
+Border = 0.6
+}
+}
+
+CONFIG.Radius2 = CONFIG.Radius * 2
+CONFIG.InnerRadius2 = CONFIG.InnerRadius * 2
+
+local Areas = {}
+local Toggles = {}
+local CurrentWindow
+
+function Library:Window(name)
+local self = {}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CircleLib_"..name
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local openButton = Instance.new("TextButton")
+openButton.Size = UDim2.fromOffset(45,45)
+openButton.Position = UDim2.new(0,25,0.5,-22)
+openButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
+openButton.BackgroundTransparency = 0.2
+openButton.Text = "☺"
+openButton.TextColor3 = Color3.new(1,1,1)
+openButton.TextSize = 25
+openButton.Parent = screenGui
+Instance.new("UICorner",openButton).CornerRadius = UDim.new(1,0)
+Instance.new("UIStroke",openButton).Color = Color3.new(1,1,1)
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Visible = false
+mainFrame.Size = UDim2.fromOffset(CONFIG.Radius2,CONFIG.Radius2)
+mainFrame.AnchorPoint = Vector2.new(0.5,0.5)
+mainFrame.Position = UDim2.fromScale(0.5,0.5)
+mainFrame.BackgroundTransparency = 1
+mainFrame.Parent = screenGui
+
+local group = Instance.new("CanvasGroup")
+group.Size = UDim2.fromScale(1,1)
+group.BackgroundTransparency = 1
+group.GroupTransparency = 1
+group.Parent = mainFrame
+
+local outerBg = Instance.new("Frame")
+outerBg.Size = UDim2.fromScale(1,1)
+outerBg.BackgroundColor3 = CONFIG.Colors.Background
+outerBg.BackgroundTransparency = CONFIG.Alpha.Background
+outerBg.Parent = group
+Instance.new("UICorner",outerBg).CornerRadius = UDim.new(1,0)
+
+local outerStroke = Instance.new("UIStroke",outerBg)
+outerStroke.Color = CONFIG.Colors.Separator
+outerStroke.Transparency = CONFIG.Alpha.Border
+
+local rotationWrapper = Instance.new("Frame")
+rotationWrapper.Size = UDim2.fromScale(1,1)
+rotationWrapper.BackgroundTransparency = 1
+rotationWrapper.Parent = group
+
+local numberLabels = {}
+local slotButtons = {}
+
+for i=1,8 do
+local angle = (360/8)*(i-1)
+
+local pivot = Instance.new("Frame")
+pivot.Size = UDim2.fromScale(0,0)
+pivot.Position = UDim2.fromScale(0.5,0.5)
+pivot.Rotation = angle + (360/16)
+pivot.BackgroundTransparency = 1
+pivot.Parent = rotationWrapper
+
+local line = Instance.new("Frame")
+line.BackgroundColor3 = CONFIG.Colors.Separator
+line.BorderSizePixel = 0
+line.Size = UDim2.new(0,1,0,(CONFIG.Radius-CONFIG.InnerRadius)*0.6)
+line.Position = UDim2.new(0.5,0,0,-CONFIG.InnerRadius-5)
+line.AnchorPoint = Vector2.new(0.5,1)
+line.Parent = pivot
+
+local grad = Instance.new("UIGradient",line)
+grad.Rotation = -90
+grad.Transparency = NumberSequence.new({
+NumberSequenceKeypoint.new(0,0.2),
+NumberSequenceKeypoint.new(1,1)
+})
+
+local rad = math.rad(angle-90)
+
+local txt = Instance.new("TextLabel")
+txt.Size = UDim2.fromOffset(15,15)
+txt.BackgroundTransparency = 1
+txt.TextColor3 = CONFIG.Colors.Text
+txt.Font = CONFIG.Font
+txt.TextSize = CONFIG.FontSize
+txt.AnchorPoint = Vector2.new(0.5,0.5)
+txt.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+12), 0.5, math.sin(rad)*(CONFIG.InnerRadius+12))
+txt.Parent = rotationWrapper
+numberLabels[i] = txt
+
+local slot = Instance.new("ImageButton")
+slot.Size = UDim2.fromOffset(36,36)
+slot.AnchorPoint = Vector2.new(0.5,0.5)
+slot.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+40), 0.5, math.sin(rad)*(CONFIG.InnerRadius+40))
+slot.BackgroundTransparency = 1
+slot.Image = "rbxassetid://3926305904"
+slot.ImageRectOffset = Vector2.new(964,324)
+slot.ImageRectSize = Vector2.new(36,36)
+slot.ImageColor3 = Color3.new(1,1,1)
+slot.Parent = rotationWrapper
+
+slotButtons[i] = slot
 end
 
-function circle.et.library:Init()
-    self.Gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-    self.Gui.Name = "CircleEtLib_" .. math.random(100,999)
-    self.Gui.IgnoreGuiInset = true
+local centerCircle = Instance.new("TextButton")
+centerCircle.Size = UDim2.fromOffset(CONFIG.InnerRadius2,CONFIG.InnerRadius2)
+centerCircle.Position = UDim2.fromScale(0.5,0.5)
+centerCircle.AnchorPoint = Vector2.new(0.5,0.5)
+centerCircle.BackgroundColor3 = CONFIG.Colors.Background
+centerCircle.BackgroundTransparency = 0.05
+centerCircle.Text = ""
+centerCircle.ZIndex = 10
+centerCircle.Parent = group
+Instance.new("UICorner",centerCircle).CornerRadius = UDim.new(1,0)
 
-    -- Botão Toggle Principal
-    self.OpenBtn = Instance.new("TextButton", self.Gui)
-    self.OpenBtn.Size = UDim2.fromOffset(45,45)
-    self.OpenBtn.Position = UDim2.new(0, 25, 0.5, -22)
-    self.OpenBtn.BackgroundColor3 = Color3.new(0,0,0)
-    self.OpenBtn.BackgroundTransparency = 0.2
-    self.OpenBtn.Text = "☺"
-    self.OpenBtn.TextColor3 = Color3.new(1,1,1)
-    self.OpenBtn.TextSize = 25
-    Instance.new("UICorner", self.OpenBtn).CornerRadius = UDim.new(1,0)
-    Instance.new("UIStroke", self.OpenBtn).Color = Color3.new(1,1,1)
+local innerStroke = Instance.new("UIStroke",centerCircle)
+innerStroke.Color = CONFIG.Colors.Separator
+innerStroke.Transparency = CONFIG.Alpha.Border
 
-    -- Container do Menu
-    self.Main = Instance.new("Frame", self.Gui)
-    self.Main.Visible = false
-    self.Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.Main.Position = UDim2.fromScale(0.5, 0.5)
-    self.Main.Size = UDim2.fromOffset(0, 0)
-    self.Main.BackgroundTransparency = 1
+local centerText = Instance.new("TextLabel")
+centerText.Size = UDim2.fromScale(0.8,0.8)
+centerText.Position = UDim2.fromScale(0.5,0.5)
+centerText.AnchorPoint = Vector2.new(0.5,0.5)
+centerText.BackgroundTransparency = 1
+centerText.TextColor3 = CONFIG.Colors.Text
+centerText.Font = Enum.Font.GothamMedium
+centerText.TextSize = 12
+centerText.ZIndex = 11
+centerText.Parent = centerCircle
 
-    self.Canvas = Instance.new("CanvasGroup", self.Main)
-    self.Canvas.Size = UDim2.fromScale(1, 1)
-    self.Canvas.BackgroundTransparency = 1
-    self.Canvas.GroupTransparency = 1
+local currentPage = 1
+local currentRotation = 0
+local isOpen = false
 
-    local bg = Instance.new("Frame", self.Canvas)
-    bg.Size = UDim2.fromScale(1,1)
-    bg.BackgroundColor3 = self.Config.Colors.Background
-    bg.BackgroundTransparency = 0.12
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(1,0)
-    
-    self.Stroke = Instance.new("UIStroke", bg)
-    self.Stroke.Color = self.Config.Colors.Separator
-    self.Stroke.Transparency = 0.6
-
-    self.Rotator = Instance.new("Frame", self.Canvas)
-    self.Rotator.Size = UDim2.fromScale(1,1)
-    self.Rotator.BackgroundTransparency = 1
-
-    -- Centro
-    self.Center = Instance.new("TextButton", self.Canvas)
-    self.Center.Size = UDim2.fromOffset(self.Config.InnerRadius*2, self.Config.InnerRadius*2)
-    self.Center.Position = UDim2.fromScale(0.5,0.5)
-    self.Center.AnchorPoint = Vector2.new(0.5,0.5)
-    self.Center.BackgroundColor3 = self.Config.Colors.Background
-    self.Center.Text = ""
-    self.Center.ZIndex = 10
-    Instance.new("UICorner", self.Center).CornerRadius = UDim.new(1,0)
-    Instance.new("UIStroke", self.Center).Color = self.Config.Colors.Separator
-
-    self.CenterText = Instance.new("TextLabel", self.Center)
-    self.CenterText.Size = UDim2.fromScale(0.8,0.8)
-    self.CenterText.Position = UDim2.fromScale(0.5,0.5)
-    self.CenterText.AnchorPoint = Vector2.new(0.5,0.5)
-    self.CenterText.BackgroundTransparency = 1
-    self.CenterText.TextColor3 = self.Config.Colors.Separator
-    self.CenterText.Font = Enum.Font.GothamMedium
-    self.CenterText.TextSize = 11
-    self.CenterText.Text = self.Title
-
-    -- Lógica de Abrir/Fechar
-    self.OpenBtn.MouseButton1Click:Connect(function()
-        self.IsOpen = not self.IsOpen
-        if self.IsOpen then
-            self:Render()
-            self.Main.Visible = true
-            TweenService:Create(self.Main, TweenInfo.new(0.4, Enum.EasingStyle.Back), {Size = UDim2.fromOffset(self.Config.Radius*2, self.Config.Radius*2)}):Play()
-            TweenService:Create(self.Canvas, TweenInfo.new(0.3), {GroupTransparency = 0}):Play()
-        else
-            local tw = TweenService:Create(self.Main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.fromOffset(0,0)})
-            TweenService:Create(self.Canvas, TweenInfo.new(0.2), {GroupTransparency = 1}):Play()
-            tw:Play()
-        end
-    end)
-
-    -- Navegação
-    self.Center.MouseButton1Click:Connect(function()
-        local mouse = player:GetMouse()
-        local centerPos = self.Center.AbsolutePosition + (self.Center.AbsoluteSize/2)
-        local dir = (mouse.X < centerPos.X) and -1 or 1
-        
-        local nextP = self.CurrentPageIndex + dir
-        if nextP < 1 or nextP > #self.Areas then
-            TweenService:Create(self.Stroke, TweenInfo.new(0.15), {Color = self.Config.Colors.Error}):Play()
-            task.delay(0.3, function() TweenService:Create(self.Stroke, TweenInfo.new(0.3), {Color = self.Config.Colors.Separator}):Play() end)
-            return
-        end
-        
-        self.CurrentPageIndex = nextP
-        self.RotationValue += 360 * dir
-        TweenService:Create(self.Rotator, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Rotation = self.RotationValue}):Play()
-        task.wait(0.2)
-        self:Render()
-    end)
+local function refreshNumbers()
+for i=1,8 do
+local id = (currentPage-1)*8+i
+numberLabels[i].Text = tostring(id)
+numberLabels[i].Rotation = -currentRotation
+end
 end
 
-function circle.et.library:Area(title)
-    local newArea = {Title = title, Items = {}}
-    table.insert(self.Areas, newArea)
-    return newArea
+local function updateSlot(id)
+local localId = ((id-1)%8)+1
+local btn = slotButtons[localId]
+if Toggles[id] then
+TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = CONFIG.Colors.Active}):Play()
+else
+TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = Color3.new(1,1,1)}):Play()
+end
 end
 
-function circle.et.library:Button(area, data)
-    table.insert(area.Items, {
-        Type = "Button",
-        Name = data.name,
-        Image = data.image,
-        Callback = data.callback or function() end
-    })
-    
-    -- Se passar de 8 itens, cria uma sub-área automaticamente
-    if #area.Items > 8 then
-        local baseName = area.Title:gsub(" %d+$", "")
-        local newPage = self:Area(baseName .. " " .. (#self.Areas + 1))
-        local lastItem = table.remove(area.Items)
-        table.insert(newPage.Items, lastItem)
-    end
+local function flash(btn)
+TweenService:Create(btn,TweenInfo.new(0.1),{ImageColor3 = CONFIG.Colors.Active}):Play()
+local grow = TweenService:Create(btn,TweenInfo.new(0.1),{Size = UDim2.fromOffset(40,40)})
+local shrink = TweenService:Create(btn,TweenInfo.new(0.1),{Size = UDim2.fromOffset(36,36)})
+grow:Play()
+grow.Completed:Wait()
+shrink:Play()
+task.delay(0.7,function()
+TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = Color3.new(1,1,1)}):Play()
+end)
 end
 
-function circle.et.library:Toggle(area, data)
-    local item = {
-        Type = "Toggle",
-        Name = data.name,
-        Image = data.image,
-        State = false,
-        Callback = data.callback or function() end
-    }
-    table.insert(area.Items, item)
-    self.Toggles[data.name] = item
-
-    if #area.Items > 8 then
-        local baseName = area.Title:gsub(" %d+$", "")
-        local newPage = self:Area(baseName .. " " .. (#self.Areas + 1))
-        local lastItem = table.remove(area.Items)
-        table.insert(newPage.Items, lastItem)
-    end
+for i=1,8 do
+slotButtons[i].MouseButton1Click:Connect(function()
+local id = (currentPage-1)*8+i
+local data = Areas[id]
+if not data then return end
+if data.Type == "toggle" then
+Toggles[id] = not Toggles[id]
+updateSlot(id)
+data.Callback(Toggles[id])
+else
+flash(slotButtons[i])
+data.Callback()
+end
+end)
 end
 
-function circle.et.library:SetToggle(name, mode)
-    local item = self.Toggles[name]
-    if item then
-        item.State = (mode == "on")
-        self:Render()
-    end
+local function navigate(dir)
+local maxPages = math.max(1, math.ceil(#Areas/8))
+local n = currentPage + dir
+if n<1 or n>maxPages then
+TweenService:Create(outerStroke,TweenInfo.new(0.15),{Color=CONFIG.Colors.Error}):Play()
+task.delay(0.4,function()
+TweenService:Create(outerStroke,TweenInfo.new(0.3),{Color=CONFIG.Colors.Separator}):Play()
+end)
+return
+end
+currentPage = n
+currentRotation += 360*dir
+TweenService:Create(rotationWrapper,TweenInfo.new(0.6,Enum.EasingStyle.Quart),{Rotation=currentRotation}):Play()
+task.wait(0.3)
+centerText.Text = Areas[((currentPage-1)*8)+1].Area
+refreshNumbers()
 end
 
-function circle.et.library:Render()
-    self.Rotator:ClearAllChildren()
-    local area = self.Areas[self.CurrentPageIndex]
-    if not area then return end
-    
-    self.CenterText.Text = area.Title
-    
-    for i, item in ipairs(area.Items) do
-        local angle = (360/8) * (i-1)
-        local rad = math.rad(angle - 90)
-        
-        local btn = Instance.new("ImageButton", self.Rotator)
-        btn.Size = UDim2.fromOffset(36,36)
-        btn.AnchorPoint = Vector2.new(0.5, 0.5)
-        btn.Position = UDim2.new(0.5, math.cos(rad)*(self.Config.InnerRadius+40), 0.5, math.sin(rad)*(self.Config.InnerRadius+40))
-        btn.BackgroundTransparency = 1
-        btn.Image = "rbxassetid://" .. tostring(item.Image)
-        btn.Rotation = -self.RotationValue
-        
-        if item.Type == "Toggle" and item.State then
-            btn.ImageColor3 = self.Config.Colors.Active
-        else
-            btn.ImageColor3 = Color3.new(1,1,1)
-        end
-        
-        btn.MouseButton1Click:Connect(function()
-            if item.Type == "Toggle" then
-                item.State = not item.State
-                btn.ImageColor3 = item.State and self.Config.Colors.Active or Color3.new(1,1,1)
-                item.Callback(item.State)
-            else
-                -- Efeito Flash para botão normal
-                TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = self.Config.Colors.Active}):Play()
-                task.delay(0.2, function() btn.ImageColor3 = Color3.new(1,1,1) end)
-                item.Callback()
-            end
-        end)
-    end
+centerCircle.MouseButton1Click:Connect(function()
+local mouse = player:GetMouse()
+local centerPos = centerCircle.AbsolutePosition + (centerCircle.AbsoluteSize/2)
+if mouse.X < centerPos.X then navigate(-1) else navigate(1) end
+end)
+
+openButton.MouseButton1Click:Connect(function()
+isOpen = not isOpen
+if isOpen then
+mainFrame.Visible = true
+mainFrame.Size = UDim2.fromOffset(0,0)
+group.GroupTransparency = 1
+TweenService:Create(mainFrame,TweenInfo.new(0.4,Enum.EasingStyle.Back),{Size=UDim2.fromOffset(CONFIG.Radius2,CONFIG.Radius2)}):Play()
+TweenService:Create(group,TweenInfo.new(0.3),{GroupTransparency=0}):Play()
+else
+local tw = TweenService:Create(mainFrame,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.fromOffset(0,0)})
+TweenService:Create(group,TweenInfo.new(0.2),{GroupTransparency=1}):Play()
+tw:Play()
+tw.Completed:Wait()
+mainFrame.Visible=false
+end
+end)
+
+function self:Area(title)
+local area = {}
+area.Title = title
+function area:Button(cfg)
+table.insert(Areas,{
+Name = cfg.name,
+Image = cfg.image,
+Callback = cfg.callback or function() end,
+Type = "button",
+Area = title
+})
+centerText.Text = Areas[1].Area
+refreshNumbers()
 end
 
-return circle.et.library
+function area:Toggle(cfg)
+table.insert(Areas,{
+Name = cfg.name,
+Image = cfg.image,
+Callback = cfg.callback or function() end,
+Type = "toggle",
+Area = title
+})
+centerText.Text = Areas[1].Area
+refreshNumbers()
+end
+return area
+end
+
+CurrentWindow = self
+return self
+end
+
+function Library.Toggle(name,state)
+for id,data in pairs(Areas) do
+if data.Name == name and data.Type == "toggle" then
+Toggles[id] = state
+updateSlot(id)
+end
+end
+end
+
+return Library
