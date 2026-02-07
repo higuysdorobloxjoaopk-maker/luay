@@ -1,4 +1,4 @@
--- up ↑
+-- up.date.circle.V.2.3
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -27,10 +27,17 @@ Border = 0.6
 CONFIG.Radius2 = CONFIG.Radius * 2
 CONFIG.InnerRadius2 = CONFIG.InnerRadius * 2
 
-local Areas = {}
-local Toggles = {}
-local SlotButtons = {}
-local CurrentWindow
+local function chunk(tbl, size)
+local pages = {}
+for i = 1, #tbl, size do
+local page = {}
+for j = i, math.min(i+size-1, #tbl) do
+table.insert(page, tbl[j])
+end
+table.insert(pages, page)
+end
+return pages
+end
 
 function Library:Window(name)
 local self = {}
@@ -82,46 +89,11 @@ rotationWrapper.Size = UDim2.fromScale(1,1)
 rotationWrapper.BackgroundTransparency = 1
 rotationWrapper.Parent = group
 
-local numberLabels = {}
+local slots = {}
 
 for i=1,8 do
 local angle = (360/8)*(i-1)
-
-local pivot = Instance.new("Frame")
-pivot.Size = UDim2.fromScale(0,0)
-pivot.Position = UDim2.fromScale(0.5,0.5)
-pivot.Rotation = angle + (360/16)
-pivot.BackgroundTransparency = 1
-pivot.Parent = rotationWrapper
-
-local line = Instance.new("Frame")
-line.BackgroundColor3 = CONFIG.Colors.Separator
-line.BorderSizePixel = 0
-line.Size = UDim2.new(0,1,0,(CONFIG.Radius-CONFIG.InnerRadius)*0.6)
-line.Position = UDim2.new(0.5,0,0,-CONFIG.InnerRadius-5)
-line.AnchorPoint = Vector2.new(0.5,1)
-line.Parent = pivot
-
-local grad = Instance.new("UIGradient",line)
-grad.Rotation = -90
-grad.Transparency = NumberSequence.new({
-NumberSequenceKeypoint.new(0,0.2),
-NumberSequenceKeypoint.new(1,1)
-})
-
 local rad = math.rad(angle-90)
-
-local txt = Instance.new("TextLabel")
-txt.Size = UDim2.fromOffset(15,15)
-txt.BackgroundTransparency = 1
-txt.TextColor3 = CONFIG.Colors.Text
-txt.Font = CONFIG.Font
-txt.TextSize = CONFIG.FontSize
-txt.AnchorPoint = Vector2.new(0.5,0.5)
-txt.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+12), 0.5, math.sin(rad)*(CONFIG.InnerRadius+12))
-txt.ZIndex = 12
-txt.Parent = rotationWrapper
-numberLabels[i] = txt
 
 local slot = Instance.new("ImageButton")
 slot.Size = UDim2.fromOffset(36,36)
@@ -135,7 +107,7 @@ slot.ImageColor3 = Color3.new(1,1,1)
 slot.ZIndex = 12
 slot.Parent = rotationWrapper
 
-SlotButtons[i] = slot
+slots[i] = slot
 end
 
 local centerCircle = Instance.new("TextButton")
@@ -149,10 +121,6 @@ centerCircle.ZIndex = 10
 centerCircle.Parent = group
 Instance.new("UICorner",centerCircle).CornerRadius = UDim.new(1,0)
 
-local innerStroke = Instance.new("UIStroke",centerCircle)
-innerStroke.Color = CONFIG.Colors.Separator
-innerStroke.Transparency = CONFIG.Alpha.Border
-
 local centerText = Instance.new("TextLabel")
 centerText.Size = UDim2.fromScale(0.8,0.8)
 centerText.Position = UDim2.fromScale(0.5,0.5)
@@ -164,72 +132,57 @@ centerText.TextSize = 12
 centerText.ZIndex = 11
 centerText.Parent = centerCircle
 
-local currentPage = 1
-local currentRotation = 0
-local isOpen = false
+local Areas = {}
+local areaIndex = 1
+local pageIndex = 1
 
-local function refreshNumbers()
-for i=1,8 do
-local id = (currentPage-1)*8+i
-numberLabels[i].Text = tostring(id)
-numberLabels[i].Rotation = -currentRotation
-end
-end
+local function render()
+local area = Areas[areaIndex]
+if not area then return end
 
-local function updateSlot(id)
-local localId = ((id-1)%8)+1
-local btn = SlotButtons[localId]
-if Toggles[id] then
-TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = CONFIG.Colors.Active}):Play()
-else
-TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = Color3.new(1,1,1)}):Play()
-end
-end
-
-local function flash(btn)
-TweenService:Create(btn,TweenInfo.new(0.1),{ImageColor3 = CONFIG.Colors.Active}):Play()
-local grow = TweenService:Create(btn,TweenInfo.new(0.1),{Size = UDim2.fromOffset(40,40)})
-local shrink = TweenService:Create(btn,TweenInfo.new(0.1),{Size = UDim2.fromOffset(36,36)})
-grow:Play()
-grow.Completed:Wait()
-shrink:Play()
-task.delay(0.7,function()
-TweenService:Create(btn,TweenInfo.new(0.15),{ImageColor3 = Color3.new(1,1,1)}):Play()
-end)
-end
+centerText.Text = area.Title
+local pages = chunk(area.Items,8)
+local page = pages[pageIndex] or {}
 
 for i=1,8 do
-SlotButtons[i].MouseButton1Click:Connect(function()
-local id = (currentPage-1)*8+i
-local data = Areas[id]
-if not data then return end
-if data.Type == "toggle" then
-Toggles[id] = not Toggles[id]
-updateSlot(id)
-data.Callback(Toggles[id])
+local btn = slots[i]
+local item = page[i]
+
+if item then
+btn.Visible = true
+btn.ImageColor3 = Color3.new(1,1,1)
+btn.MouseButton1Click:Connect(function()
+if item.Type == "toggle" then
+item.State = not item.State
+TweenService:Create(btn,TweenInfo.new(0.15),{
+ImageColor3 = item.State and CONFIG.Colors.Active or Color3.new(1,1,1)
+}):Play()
+item.Callback(item.State)
 else
-flash(SlotButtons[i])
-data.Callback()
+item.Callback()
 end
 end)
+else
+btn.Visible = false
+end
+end
 end
 
 local function navigate(dir)
-local maxPages = math.max(1, math.ceil(#Areas/8))
-local n = currentPage + dir
-if n<1 or n>maxPages then
-TweenService:Create(outerStroke,TweenInfo.new(0.15),{Color=CONFIG.Colors.Error}):Play()
-task.delay(0.4,function()
-TweenService:Create(outerStroke,TweenInfo.new(0.3),{Color=CONFIG.Colors.Separator}):Play()
-end)
-return
+local area = Areas[areaIndex]
+local pages = chunk(area.Items,8)
+pageIndex += dir
+
+if pageIndex > #pages then
+areaIndex = math.min(areaIndex + 1, #Areas)
+pageIndex = 1
+elseif pageIndex < 1 then
+areaIndex = math.max(areaIndex - 1, 1)
+local prev = Areas[areaIndex]
+pageIndex = #chunk(prev.Items,8)
 end
-currentPage = n
-currentRotation += 360*dir
-TweenService:Create(rotationWrapper,TweenInfo.new(0.6,Enum.EasingStyle.Quart),{Rotation=currentRotation}):Play()
-task.wait(0.3)
-centerText.Text = Areas[((currentPage-1)*8)+1].Area
-refreshNumbers()
+
+render()
 end
 
 centerCircle.MouseButton1Click:Connect(function()
@@ -239,61 +192,38 @@ if mouse.X < centerPos.X then navigate(-1) else navigate(1) end
 end)
 
 openButton.MouseButton1Click:Connect(function()
-isOpen = not isOpen
-if isOpen then
-mainFrame.Visible = true
-mainFrame.Size = UDim2.fromOffset(0,0)
-group.GroupTransparency = 1
-TweenService:Create(mainFrame,TweenInfo.new(0.4,Enum.EasingStyle.Back),{Size=UDim2.fromOffset(CONFIG.Radius2,CONFIG.Radius2)}):Play()
-TweenService:Create(group,TweenInfo.new(0.3),{GroupTransparency=0}):Play()
-else
-local tw = TweenService:Create(mainFrame,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.fromOffset(0,0)})
-TweenService:Create(group,TweenInfo.new(0.2),{GroupTransparency=1}):Play()
-tw:Play()
-tw.Completed:Wait()
-mainFrame.Visible=false
-end
+mainFrame.Visible = not mainFrame.Visible
+group.GroupTransparency = mainFrame.Visible and 0 or 1
 end)
 
 function self:Area(title)
-local area = {}
+local area = {Title=title,Items={}}
+table.insert(Areas,area)
+
 function area:Button(cfg)
-table.insert(Areas,{
-Name = cfg.name,
-Image = cfg.image,
-Callback = cfg.callback or function() end,
-Type = "button",
-Area = title
+table.insert(area.Items,{
+Type="button",
+Name=cfg.name,
+Callback=cfg.callback or function() end
 })
-centerText.Text = Areas[1].Area
-refreshNumbers()
+render()
 end
 
 function area:Toggle(cfg)
-table.insert(Areas,{
-Name = cfg.name,
-Image = cfg.image,
-Callback = cfg.callback or function() end,
-Type = "toggle",
-Area = title
+table.insert(area.Items,{
+Type="toggle",
+Name=cfg.name,
+Callback=cfg.callback or function() end,
+State=false
 })
-centerText.Text = Areas[1].Area
-refreshNumbers()
+render()
 end
+
 return area
 end
 
-CurrentWindow = self
+render()
 return self
-end
-
-function Library.Toggle(name,state)
-for id,data in ipairs(Areas) do
-if data.Name == name and data.Type == "toggle" then
-Toggles[id] = state
-updateSlot(id)
-end
-end
 end
 
 return Library
