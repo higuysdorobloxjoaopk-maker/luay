@@ -17,8 +17,8 @@ local CONFIG = {
         Active = Color3.fromRGB(0,140,255)
     },
     Alpha = {
-        Background = 0.12,
-        SeparatorLine = 0.5,
+        Background = 0.5,
+        SeparatorLine = 0.2, -- Transparência da fatia
         Border = 0.6
     }
 }
@@ -28,7 +28,7 @@ CONFIG.InnerRadius2 = CONFIG.InnerRadius * 2
 
 local function chunk(tbl, size)
     local pages = {}
-    for i = 1, #tbl, size do
+    for i = i, #tbl, size do
         local page = {}
         for j = i, math.min(i+size-1, #tbl) do
             table.insert(page, tbl[j])
@@ -70,7 +70,7 @@ function Library:Window(name)
     local group = Instance.new("CanvasGroup")
     group.Size = UDim2.fromScale(1,1)
     group.BackgroundTransparency = 1
-    group.GroupTransparency = 1
+    group.GroupTransparency = 0
     group.Parent = mainFrame
 
     local outerBg = Instance.new("Frame")
@@ -84,48 +84,42 @@ function Library:Window(name)
     outerStroke.Color = CONFIG.Colors.Separator
     outerStroke.Transparency = CONFIG.Alpha.Border
 
+    -- SISTEMA DE DIVISÓRIAS (TRIANGULARES/AFINANDO PARA O CENTRO)
+    local separatorContainer = Instance.new("Frame")
+    separatorContainer.Size = UDim2.fromScale(1, 1)
+    separatorContainer.BackgroundTransparency = 1
+    separatorContainer.Parent = group
+
+    for i = 1, 8 do
+        local angle = (360 / 8) * (i - 1) + (360 / 16)
+        
+        -- Usamos um ImageLabel com um triângulo para fazer o efeito de afinar
+        local separator = Instance.new("ImageLabel")
+        separator.Name = "Separator_"..i
+        -- Largura na borda externa (ex: 4px) e altura é a distância entre os círculos
+        separator.Size = UDim2.fromOffset(4, CONFIG.Radius - CONFIG.InnerRadius) 
+        separator.AnchorPoint = Vector2.new(0.5, 1) 
+        separator.BackgroundTransparency = 1
+        
+        -- Asset de triângulo invertido (largo em cima, fino embaixo)
+        separator.Image = "rbxassetid://7059346371" 
+        separator.ImageColor3 = CONFIG.Colors.Separator
+        separator.ImageTransparency = CONFIG.Alpha.SeparatorLine
+        
+        -- Cálculo de posicionamento radial
+        local moveDist = CONFIG.InnerRadius + (separator.Size.Y.Offset / 2)
+        separator.Position = UDim2.new(
+            0.5, math.cos(math.rad(angle-90)) * moveDist, 
+            0.5, math.sin(math.rad(angle-90)) * moveDist
+        )
+        separator.Rotation = angle
+        separator.Parent = separatorContainer
+    end
+
     local rotationWrapper = Instance.new("Frame")
     rotationWrapper.Size = UDim2.fromScale(1,1)
     rotationWrapper.BackgroundTransparency = 1
     rotationWrapper.Parent = group
-
-    --- ==========================================
-    --- DIVISÓRIAS CORRIGIDAS (ALINHAMENTO MOBILE)
-    --- ==========================================
-    for i=1, 8 do
-        local angle = (360/8) * (i-1) -- corrigido para não inverter
-        local rad = math.rad(angle - 90)
-
-        local linePivot = Instance.new("Frame")
-        local lineLength = CONFIG.Radius - CONFIG.InnerRadius - 2
-        linePivot.Size = UDim2.fromOffset(2, lineLength)
-        linePivot.AnchorPoint = Vector2.new(0.5, 0)
-        linePivot.Position = UDim2.new(
-            0.5, math.cos(rad) * CONFIG.InnerRadius,
-            0.5, math.sin(rad) * CONFIG.InnerRadius
-        )
-        linePivot.Rotation = angle
-        linePivot.BackgroundTransparency = 1
-        linePivot.Parent = rotationWrapper
-
-        local sharpLine = Instance.new("Frame")
-        sharpLine.Size = UDim2.new(1, 0, 1, 0)
-        sharpLine.BackgroundColor3 = CONFIG.Colors.Separator
-        sharpLine.BackgroundTransparency = 0.4
-        sharpLine.BorderSizePixel = 0
-        sharpLine.Parent = linePivot
-
-        local uiCorner = Instance.new("UICorner", sharpLine)
-        uiCorner.CornerRadius = UDim.new(1, 0) 
-
-        local gradient = Instance.new("UIGradient", sharpLine)
-        gradient.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 1)
-        })
-        gradient.Rotation = 90
-    end
-    --- ==========================================
 
     local slots = {}
 
@@ -155,7 +149,7 @@ function Library:Window(name)
     centerCircle.BackgroundColor3 = CONFIG.Colors.Background
     centerCircle.BackgroundTransparency = 0.05
     centerCircle.Text = ""
-    centerCircle.ZIndex = 10
+    centerCircle.ZIndex = 15 
     centerCircle.Parent = group
     Instance.new("UICorner",centerCircle).CornerRadius = UDim.new(1,0)
     
@@ -171,8 +165,8 @@ function Library:Window(name)
     centerText.BackgroundTransparency = 1
     centerText.TextColor3 = CONFIG.Colors.Text
     centerText.Font = Enum.Font.GothamMedium
-    centerText.TextSize = 12
-    centerText.ZIndex = 11
+    centerText.TextSize = 11
+    centerText.ZIndex = 16
     centerText.Parent = centerCircle
 
     local Areas = {}
@@ -211,14 +205,18 @@ function Library:Window(name)
 
     local function navigate(dir)
         local area = Areas[areaIndex]
+        if not area then return end
+        
         local pages = chunk(area.Items,8)
         pageIndex += dir
 
         if pageIndex > #pages then
-            areaIndex = math.min(areaIndex + 1, #Areas)
+            areaIndex = areaIndex + 1
+            if areaIndex > #Areas then areaIndex = 1 end
             pageIndex = 1
         elseif pageIndex < 1 then
-            areaIndex = math.max(areaIndex - 1, 1)
+            areaIndex = areaIndex - 1
+            if areaIndex < 1 then areaIndex = #Areas end
             local prev = Areas[areaIndex]
             pageIndex = #chunk(prev.Items,8)
         end
