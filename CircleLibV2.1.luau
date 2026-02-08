@@ -1,5 +1,3 @@
--- up.date
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -7,22 +5,22 @@ local player = Players.LocalPlayer
 local Library = {}
 
 local CONFIG = {
-    Radius = 134,
-    InnerRadius = 55,
-    FontSize = 13,
-    Font = Enum.Font.GothamBold,
-    Colors = {
-        Background = Color3.fromRGB(18,18,18),
-        Separator = Color3.fromRGB(255,255,255),
-        Text = Color3.fromRGB(255,255,255),
-        Error = Color3.fromRGB(255,50,50),
-        Active = Color3.fromRGB(0,140,255)
-    },
-    Alpha = {
-        Background = 0.12,
-        SeparatorLine = 0.1,
-        Border = 0.6
-    }
+Radius = 134,
+InnerRadius = 55,
+FontSize = 13,
+Font = Enum.Font.GothamBold,
+Colors = {
+Background = Color3.fromRGB(18,18,18),
+Separator = Color3.fromRGB(255,255,255),
+Text = Color3.fromRGB(255,255,255),
+Error = Color3.fromRGB(255,50,50),
+Active = Color3.fromRGB(0,140,255)
+},
+Alpha = {
+Background = 0.12,
+SeparatorLine = 0.1,
+Border = 0.6
+}
 }
 
 CONFIG.Radius2 = CONFIG.Radius * 2
