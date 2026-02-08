@@ -1,144 +1,100 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
-local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-
-local Turn = {}
-Turn.__toggles = {}
-
-function Turn.Toggle(name, state)
-    local t = Turn.__toggles[name]
-    if t then
-        t:Set(state)
-        return true
-    end
-    return false
-end
-
-function Turn.GetToggle(name)
-    return Turn.__toggles[name]
-end
-
-local Circle = {}
+local player = Players.LocalPlayer
+local Library = {}
 
 local CONFIG = {
-    Radius = 140,
-    InnerRadius = 55,
-    Colors = {
-        Background = Color3.fromRGB(18,18,18),
-        Stroke = Color3.fromRGB(255,255,255),
-        Active = Color3.fromRGB(0,140,255),
-        Text = Color3.fromRGB(255,255,255),
-        Error = Color3.fromRGB(255,60,60)
-    }
+Radius = 134,
+InnerRadius = 55,
+FontSize = 13,
+Font = Enum.Font.GothamBold,
+Colors = {
+Background = Color3.fromRGB(18,18,18),
+Separator = Color3.fromRGB(255,255,255),
+Text = Color3.fromRGB(255,255,255),
+Error = Color3.fromRGB(255,50,50),
+Active = Color3.fromRGB(0,140,255)
+},
+Alpha = {
+Background = 0.12,
+SeparatorLine = 0.1,
+Border = 0.6
+}
 }
 
-function Circle:Window(title)
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "CircleLib"
-    gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
-    gui.Parent = PlayerGui
+CONFIG.Radius2 = CONFIG.Radius * 2
+CONFIG.InnerRadius2 = CONFIG.InnerRadius * 2
 
-    local openButton = Instance.new("TextButton", gui)
-    openButton.Size = UDim2.fromOffset(44,44)
+local function chunk(tbl, size)
+    local pages = {}
+    for i = 1, #tbl, size do
+        local page = {}
+        for j = i, math.min(i+size-1, #tbl) do
+            table.insert(page, tbl[j])
+        end
+        table.insert(pages, page)
+    end
+    return pages
+end
+
+function Library:Window(name)
+    local self = {}
+
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CircleLib_"..name
+    screenGui.IgnoreGuiInset = true
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    local openButton = Instance.new("TextButton")
+    openButton.Size = UDim2.fromOffset(45,45)
     openButton.Position = UDim2.new(0,25,0.5,-22)
-    openButton.Text = "☺"
-    openButton.TextSize = 24
     openButton.BackgroundColor3 = Color3.fromRGB(0,0,0)
     openButton.BackgroundTransparency = 0.2
+    openButton.Text = "☺"
     openButton.TextColor3 = Color3.new(1,1,1)
-    Instance.new("UICorner", openButton).CornerRadius = UDim.new(1,0)
-    Instance.new("UIStroke", openButton).Color = Color3.new(1,1,1)
+    openButton.TextSize = 25
+    openButton.Parent = screenGui
+    Instance.new("UICorner",openButton).CornerRadius = UDim.new(1,0)
+    Instance.new("UIStroke",openButton).Color = Color3.new(1,1,1)
 
-    local main = Instance.new("Frame", gui)
-    main.Size = UDim2.fromOffset(CONFIG.Radius*2, CONFIG.Radius*2)
-    main.Position = UDim2.fromScale(0.5,0.5)
-    main.AnchorPoint = Vector2.new(0.5,0.5)
-    main.BackgroundTransparency = 1
-    main.Visible = false
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Visible = false
+    mainFrame.Size = UDim2.fromOffset(CONFIG.Radius2,CONFIG.Radius2)
+    mainFrame.AnchorPoint = Vector2.new(0.5,0.5)
+    mainFrame.Position = UDim2.fromScale(0.5,0.5)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.Parent = screenGui
 
-    local group = Instance.new("CanvasGroup", main)
+    local group = Instance.new("CanvasGroup")
     group.Size = UDim2.fromScale(1,1)
+    group.BackgroundTransparency = 1
     group.GroupTransparency = 1
+    group.Parent = mainFrame
 
-    local outer = Instance.new("Frame", group)
-    outer.Size = UDim2.fromScale(1,1)
-    outer.BackgroundColor3 = CONFIG.Colors.Background
-    outer.BackgroundTransparency = 0.12
-    Instance.new("UICorner", outer).CornerRadius = UDim.new(1,0)
+    local outerBg = Instance.new("Frame")
+    outerBg.Size = UDim2.fromScale(1,1)
+    outerBg.BackgroundColor3 = CONFIG.Colors.Background
+    outerBg.BackgroundTransparency = CONFIG.Alpha.Background
+    outerBg.Parent = group
+    Instance.new("UICorner",outerBg).CornerRadius = UDim.new(1,0)
 
-    local outerStroke = Instance.new("UIStroke", outer)
-    outerStroke.Color = CONFIG.Colors.Stroke
-    outerStroke.Transparency = 0.6
+    local outerStroke = Instance.new("UIStroke",outerBg)
+    outerStroke.Color = CONFIG.Colors.Separator
+    outerStroke.Transparency = CONFIG.Alpha.Border
 
-    local rotationWrapper = Instance.new("Frame", group)
+    local rotationWrapper = Instance.new("Frame")
     rotationWrapper.Size = UDim2.fromScale(1,1)
     rotationWrapper.BackgroundTransparency = 1
+    rotationWrapper.Parent = group
 
-    local center = Instance.new("TextButton", group)
-    center.Size = UDim2.fromOffset(CONFIG.InnerRadius*2, CONFIG.InnerRadius*2)
-    center.Position = UDim2.fromScale(0.5,0.5)
-    center.AnchorPoint = Vector2.new(0.5,0.5)
-    center.BackgroundColor3 = CONFIG.Colors.Background
-    center.BackgroundTransparency = 0.05
-    center.Text = ""
-    center.ZIndex = 10
-    Instance.new("UICorner", center).CornerRadius = UDim.new(1,0)
-
-    local centerStroke = Instance.new("UIStroke", center)
-    centerStroke.Color = CONFIG.Colors.Stroke
-    centerStroke.Transparency = 0.6
-
-    local centerText = Instance.new("TextLabel", center)
-    centerText.Size = UDim2.fromScale(0.8,0.8)
-    centerText.Position = UDim2.fromScale(0.5,0.5)
-    centerText.AnchorPoint = Vector2.new(0.5,0.5)
-    centerText.BackgroundTransparency = 1
-    centerText.Text = title or "MENU"
-    centerText.TextColor3 = CONFIG.Colors.Text
-    centerText.Font = Enum.Font.GothamMedium
-    centerText.TextScaled = true
-    centerText.ZIndex = 11
-
-    local areas = {}
-    local currentArea = 1
-    local currentPage = 1
-    local currentRotation = 0
-
-    local numberLabels = {}
-    local slotButtons = {}
+    local slots = {}
 
     for i=1,8 do
         local angle = (360/8)*(i-1)
-
-        local pivot = Instance.new("Frame", rotationWrapper)
-        pivot.Size = UDim2.fromScale(0,0)
-        pivot.Position = UDim2.fromScale(0.5,0.5)
-        pivot.Rotation = angle + (360/16)
-        pivot.BackgroundTransparency = 1
-
-        local line = Instance.new("Frame", pivot)
-        line.BackgroundColor3 = CONFIG.Colors.Stroke
-        line.BorderSizePixel = 0
-        line.Size = UDim2.new(0,1,0,(CONFIG.Radius-CONFIG.InnerRadius)*0.6)
-        line.Position = UDim2.new(0.5,0,0,-CONFIG.InnerRadius-6)
-        line.AnchorPoint = Vector2.new(0.5,1)
-
         local rad = math.rad(angle-90)
 
-        local txt = Instance.new("TextLabel", rotationWrapper)
-        txt.Size = UDim2.fromOffset(15,15)
-        txt.BackgroundTransparency = 1
-        txt.TextColor3 = CONFIG.Colors.Text
-        txt.Font = Enum.Font.GothamBold
-        txt.TextSize = 13
-        txt.AnchorPoint = Vector2.new(0.5,0.5)
-        txt.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+12), 0.5, math.sin(rad)*(CONFIG.InnerRadius+12))
-        numberLabels[i] = txt
-
-        local slot = Instance.new("ImageButton", rotationWrapper)
+        local slot = Instance.new("ImageButton")
         slot.Size = UDim2.fromOffset(36,36)
         slot.AnchorPoint = Vector2.new(0.5,0.5)
         slot.Position = UDim2.new(0.5, math.cos(rad)*(CONFIG.InnerRadius+40), 0.5, math.sin(rad)*(CONFIG.InnerRadius+40))
@@ -146,111 +102,127 @@ function Circle:Window(title)
         slot.Image = "rbxassetid://3926305904"
         slot.ImageRectOffset = Vector2.new(964,324)
         slot.ImageRectSize = Vector2.new(36,36)
-        slotButtons[i] = slot
+        slot.ImageColor3 = Color3.new(1,1,1)
+        slot.ZIndex = 12
+        slot.Parent = rotationWrapper
+
+        slots[i] = slot
     end
 
-    local function refreshNumbers()
+    local centerCircle = Instance.new("TextButton")
+    centerCircle.Size = UDim2.fromOffset(CONFIG.InnerRadius2,CONFIG.InnerRadius2)
+    centerCircle.Position = UDim2.fromScale(0.5,0.5)
+    centerCircle.AnchorPoint = Vector2.new(0.5,0.5)
+    centerCircle.BackgroundColor3 = CONFIG.Colors.Background
+    centerCircle.BackgroundTransparency = 0.05
+    centerCircle.Text = ""
+    centerCircle.ZIndex = 10
+    centerCircle.Parent = group
+    local corner = Instance.new("UICorner",centerCircle)
+    corner.CornerRadius = UDim.new(1,0)
+    local border = Instance.new("UIStroke",centerCircle)
+    border.Color = CONFIG.Colors.Separator
+    border.Transparency = CONFIG.Alpha.Border
+
+    local centerText = Instance.new("TextLabel")
+    centerText.Size = UDim2.fromScale(0.8,0.8)
+    centerText.Position = UDim2.fromScale(0.5,0.5)
+    centerText.AnchorPoint = Vector2.new(0.5,0.5)
+    centerText.BackgroundTransparency = 1
+    centerText.TextColor3 = CONFIG.Colors.Text
+    centerText.Font = Enum.Font.GothamMedium
+    centerText.TextSize = 12
+    centerText.ZIndex = 11
+    centerText.Parent = centerCircle
+
+    -- divisórias tipo palito
+    for i=1,16 do
+        local angle = math.rad((360/16)*(i-1)-90)
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(0,2,0,CONFIG.Radius-CONFIG.InnerRadius-10)
+        line.AnchorPoint = Vector2.new(0.5,1)
+        line.Position = UDim2.new(0.5, math.cos(angle)*(CONFIG.InnerRadius+5), 0.5, math.sin(angle)*(CONFIG.InnerRadius+5))
+        line.BackgroundColor3 = CONFIG.Colors.Separator
+        line.BackgroundTransparency = CONFIG.Alpha.SeparatorLine
+        line.Rotation = (360/16)*(i-1)
+        line.ZIndex = 5
+        line.Parent = group
+    end
+
+    local Areas = {}
+    local areaIndex = 1
+    local pageIndex = 1
+
+    local function render()
+        local area = Areas[areaIndex]
+        if not area then return end
+
+        centerText.Text = area.Title
+        local pages = chunk(area.Items,8)
+        local page = pages[pageIndex] or {}
+
         for i=1,8 do
-            local id = (currentPage-1)*8+i
-            numberLabels[i].Text = tostring(id)
-            numberLabels[i].Rotation = -currentRotation
+            local btn = slots[i]
+            local item = page[i]
+
+            if item then
+                btn.Visible = true
+                btn.ImageColor3 = Color3.new(1,1,1)
+                btn.MouseButton1Click:Connect(function()
+                    item.Callback()
+                end)
+            else
+                btn.Visible = false
+            end
         end
-    end
-
-    local function updateToggleVisual(btn, state)
-        TweenService:Create(btn,TweenInfo.new(0.15),{
-            ImageColor3 = state and CONFIG.Colors.Active or Color3.new(1,1,1)
-        }):Play()
-    end
-
-    local function draw()
-        refreshNumbers()
     end
 
     local function navigate(dir)
-        local area = areas[currentArea]
-        if not area then return end
-        local maxPages = math.max(1, math.ceil(#area.Items / 8))
-        local n = currentPage + dir
-        if n < 1 or n > maxPages then
-            TweenService:Create(outerStroke,TweenInfo.new(0.15),{Color=CONFIG.Colors.Error}):Play()
-            task.delay(0.4,function()
-                TweenService:Create(outerStroke,TweenInfo.new(0.3),{Color=CONFIG.Colors.Stroke}):Play()
-            end)
-            return
+        local area = Areas[areaIndex]
+        local pages = chunk(area.Items,8)
+        pageIndex += dir
+
+        if pageIndex > #pages then
+            areaIndex = math.min(areaIndex + 1, #Areas)
+            pageIndex = 1
+        elseif pageIndex < 1 then
+            areaIndex = math.max(areaIndex - 1, 1)
+            local prev = Areas[areaIndex]
+            pageIndex = #chunk(prev.Items,8)
         end
-        currentPage = n
-        currentRotation += 360 * dir
-        TweenService:Create(rotationWrapper,TweenInfo.new(0.6,Enum.EasingStyle.Quart),{Rotation=currentRotation}):Play()
-        draw()
+
+        render()
     end
 
-    center.MouseButton1Click:Connect(function()
-        local mouse = Player:GetMouse()
-        local pos = center.AbsolutePosition + center.AbsoluteSize/2
-        if mouse.X < pos.X then navigate(-1) else navigate(1) end
+    centerCircle.MouseButton1Click:Connect(function()
+        local mouse = player:GetMouse()
+        local centerPos = centerCircle.AbsolutePosition + (centerCircle.AbsoluteSize/2)
+        if mouse.X < centerPos.X then navigate(-1) else navigate(1) end
     end)
 
-    local isOpen = false
     openButton.MouseButton1Click:Connect(function()
-        isOpen = not isOpen
-        if isOpen then
-            main.Visible = true
-            main.Size = UDim2.fromOffset(0,0)
-            group.GroupTransparency = 1
-            TweenService:Create(main,TweenInfo.new(0.4,Enum.EasingStyle.Back),{Size=UDim2.fromOffset(CONFIG.Radius*2,CONFIG.Radius*2)}):Play()
-            TweenService:Create(group,TweenInfo.new(0.3),{GroupTransparency=0}):Play()
-        else
-            TweenService:Create(main,TweenInfo.new(0.25,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.fromOffset(0,0)}):Play()
-            TweenService:Create(group,TweenInfo.new(0.2),{GroupTransparency=1}):Play()
-            task.delay(0.25,function()
-                if not isOpen then main.Visible=false end
-            end)
-        end
+        mainFrame.Visible = not mainFrame.Visible
+        group.GroupTransparency = mainFrame.Visible and 0 or 1
     end)
 
-    local window = {}
-
-    function window:Area(name)
-        local area = {Name=name, Items={}}
-        table.insert(areas, area)
+    function self:Area(title)
+        local area = {Title=title,Items={}}
+        table.insert(Areas,area)
 
         function area:Button(cfg)
-            table.insert(self.Items,{
-                Type="Button",
+            table.insert(area.Items,{
+                Type="button",
                 Name=cfg.name,
-                Callback=cfg.callback
+                Callback=cfg.callback or function() end
             })
+            render()
         end
 
-        function area:Toggle(cfg)
-            local state = false
-            local obj = {}
-
-            function obj:Set(v)
-                state = v
-                if cfg.callback then
-                    task.spawn(cfg.callback, v)
-                end
-            end
-
-            Turn.__toggles[cfg.name] = obj
-
-            table.insert(self.Items,{
-                Type="Toggle",
-                Name=cfg.name,
-                Obj=obj
-            })
-        end
-
-        draw()
         return area
     end
 
-    return window
+    render()
+    return self
 end
 
-return {
-    Circle = Circle,
-    Turn = Turn
-}
+return Library
