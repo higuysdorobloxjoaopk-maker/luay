@@ -90,12 +90,12 @@ function Library:Window(name)
     rotationWrapper.Parent = group
 
     --- ==========================================
-    --- DIVISÓRIAS AJUSTADAS (PONTA AFIADA)
+    --- DIVISÓRIAS CORRIGIDAS (ALINHAMENTO MOBILE)
     --- ==========================================
     for i=1, 8 do
-        local angle = (360/8) * (i - 0.5)
+        local angle = (360/8) * (i-1) -- corrigido para não inverter
         local rad = math.rad(angle - 90)
-        
+
         local linePivot = Instance.new("Frame")
         local lineLength = CONFIG.Radius - CONFIG.InnerRadius - 2
         linePivot.Size = UDim2.fromOffset(2, lineLength)
