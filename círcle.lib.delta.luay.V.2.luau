@@ -44,7 +44,7 @@ function Library:Window(name)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "CircleLib_"..name
     screenGui.IgnoreGuiInset = true
-    screenGui.ResetOnSpawn = false -- Mantém a GUI após a morte
+    screenGui.ResetOnSpawn = false -- Mantém após a morte
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
     local openButton = Instance.new("TextButton")
@@ -89,26 +89,30 @@ function Library:Window(name)
     rotationWrapper.BackgroundTransparency = 1
     rotationWrapper.Parent = group
 
-    -- Criação das Divisórias (Palito de Dente)
+    -- CORREÇÃO DAS DIVISÓRIAS (Palito de dente que afina)
     for i=1, 8 do
         local angle = (360/8) * (i - 0.5)
         local rad = math.rad(angle - 90)
         
-        local divider = Instance.new("Frame")
-        divider.Name = "Divider_"..i
-        divider.BackgroundColor3 = CONFIG.Colors.Separator
-        divider.BackgroundTransparency = 0.4
-        divider.BorderSizePixel = 0
-        divider.AnchorPoint = Vector2.new(0.5, 0)
-        -- Posicionado para encostar no InnerRadius
-        divider.Position = UDim2.new(0.5, math.cos(rad) * CONFIG.InnerRadius, 0.5, math.sin(rad) * CONFIG.InnerRadius)
-        -- Tamanho: Comprido, afinando com UICorner
-        divider.Size = UDim2.fromOffset(2, CONFIG.Radius - CONFIG.InnerRadius - 10)
-        divider.Rotation = angle
-        divider.Parent = rotationWrapper
+        local dividerContainer = Instance.new("Frame")
+        dividerContainer.Size = UDim2.fromOffset(4, CONFIG.Radius - CONFIG.InnerRadius - 15)
+        dividerContainer.AnchorPoint = Vector2.new(0.5, 0)
+        -- Posiciona na borda do círculo interno
+        dividerContainer.Position = UDim2.new(0.5, math.cos(rad) * (CONFIG.InnerRadius), 0.5, math.sin(rad) * (CONFIG.InnerRadius))
+        dividerContainer.Rotation = angle
+        dividerContainer.BackgroundTransparency = 1
+        dividerContainer.Parent = rotationWrapper
+
+        local visualLine = Instance.new("Frame")
+        visualLine.Size = UDim2.fromScale(1, 1)
+        visualLine.BackgroundColor3 = CONFIG.Colors.Separator
+        visualLine.BackgroundTransparency = 0.5
+        visualLine.BorderSizePixel = 0
+        visualLine.Parent = dividerContainer
         
-        local c = Instance.new("UICorner", divider)
-        c.CornerRadius = UDim.new(1, 0) -- Faz o efeito arredondado/fino nas pontas
+        -- O UICorner com a largura do container cria o efeito de ponta fina/palito
+        local uiCorner = Instance.new("UICorner", visualLine)
+        uiCorner.CornerRadius = UDim.new(1, 0)
     end
 
     local slots = {}
@@ -143,10 +147,10 @@ function Library:Window(name)
     centerCircle.Parent = group
     Instance.new("UICorner",centerCircle).CornerRadius = UDim.new(1,0)
     
-    -- Borda no círculo central
+    -- BORDA NO CÍRCULO CENTRAL
     local centerStroke = Instance.new("UIStroke", centerCircle)
     centerStroke.Color = CONFIG.Colors.Separator
-    centerStroke.Thickness = 1.5
+    centerStroke.Thickness = 2
     centerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
     local centerText = Instance.new("TextLabel")
@@ -180,15 +184,12 @@ function Library:Window(name)
                 btn.Visible = true
                 btn.ImageColor3 = Color3.new(1,1,1)
                 
-                -- Limpa conexões anteriores para evitar cliques duplicados
-                for _, connection in pairs(getconnections(btn.MouseButton1Click)) do connection:Disable() end
-                
+                -- Conexão única
                 btn.MouseButton1Click:Connect(function()
-                    -- Efeito visual rápido (0.1s conforme pedido)
-                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageTransparency = 0.5}):Play()
+                    -- Tempo de resposta de 0.1s
+                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = CONFIG.Colors.Active}):Play()
                     task.wait(0.1)
-                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageTransparency = 0}):Play()
-                    
+                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = Color3.new(1,1,1)}):Play()
                     item.Callback()
                 end)
             else
@@ -210,7 +211,6 @@ function Library:Window(name)
             local prev = Areas[areaIndex]
             pageIndex = #chunk(prev.Items,8)
         end
-
         render()
     end
 
@@ -237,7 +237,6 @@ function Library:Window(name)
             })
             render()
         end
-
         return area
     end
 
