@@ -1,3 +1,4 @@
+-- up ↑
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -44,7 +45,7 @@ function Library:Window(name)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "CircleLib_"..name
     screenGui.IgnoreGuiInset = true
-    screenGui.ResetOnSpawn = false -- Mantém após a morte
+    screenGui.ResetOnSpawn = false -- GUI NÃO SOME AO MORRER
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
     local openButton = Instance.new("TextButton")
@@ -89,31 +90,47 @@ function Library:Window(name)
     rotationWrapper.BackgroundTransparency = 1
     rotationWrapper.Parent = group
 
-    -- CORREÇÃO DAS DIVISÓRIAS (Palito de dente que afina)
+    --- ==========================================
+    --- CONCERTO DAS DIVISÓRIAS (PONTA AFIADA)
+    --- ==========================================
     for i=1, 8 do
         local angle = (360/8) * (i - 0.5)
         local rad = math.rad(angle - 90)
         
-        local dividerContainer = Instance.new("Frame")
-        dividerContainer.Size = UDim2.fromOffset(4, CONFIG.Radius - CONFIG.InnerRadius - 15)
-        dividerContainer.AnchorPoint = Vector2.new(0.5, 0)
+        -- Container invisível para rotacionar a partir do centro exato
+        local linePivot = Instance.new("Frame")
+        linePivot.Size = UDim2.fromOffset(2, CONFIG.Radius - CONFIG.InnerRadius - 5)
+        linePivot.AnchorPoint = Vector2.new(0.5, 0)
         -- Posiciona na borda do círculo interno
-        dividerContainer.Position = UDim2.new(0.5, math.cos(rad) * (CONFIG.InnerRadius), 0.5, math.sin(rad) * (CONFIG.InnerRadius))
-        dividerContainer.Rotation = angle
-        dividerContainer.BackgroundTransparency = 1
-        dividerContainer.Parent = rotationWrapper
+        linePivot.Position = UDim2.new(
+            0.5, math.cos(rad) * (CONFIG.InnerRadius), 
+            0.5, math.sin(rad) * (CONFIG.InnerRadius)
+        )
+        linePivot.Rotation = angle
+        linePivot.BackgroundTransparency = 1
+        linePivot.Parent = rotationWrapper
 
-        local visualLine = Instance.new("Frame")
-        visualLine.Size = UDim2.fromScale(1, 1)
-        visualLine.BackgroundColor3 = CONFIG.Colors.Separator
-        visualLine.BackgroundTransparency = 0.5
-        visualLine.BorderSizePixel = 0
-        visualLine.Parent = dividerContainer
+        -- A linha real que afina
+        local sharpLine = Instance.new("Frame")
+        sharpLine.Size = UDim2.new(1, 0, 1, 0)
+        sharpLine.BackgroundColor3 = CONFIG.Colors.Separator
+        sharpLine.BackgroundTransparency = 0.4
+        sharpLine.BorderSizePixel = 0
+        sharpLine.Parent = linePivot
         
-        -- O UICorner com a largura do container cria o efeito de ponta fina/palito
-        local uiCorner = Instance.new("UICorner", visualLine)
-        uiCorner.CornerRadius = UDim.new(1, 0)
+        -- O segredo da ponta afiada: UICorner total em uma frame muito fina
+        local uiCorner = Instance.new("UICorner", sharpLine)
+        uiCorner.CornerRadius = UDim.new(1, 0) 
+        
+        -- Gradiente para reforçar o visual de "desaparecer" na ponta (opcional, mas fica foda)
+        local gradient = Instance.new("UIGradient", sharpLine)
+        gradient.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),    -- Começa visível na base
+            NumberSequenceKeypoint.new(1, 1)     -- Fica invisível na ponta fina
+        })
+        gradient.Rotation = 90
     end
+    --- ==========================================
 
     local slots = {}
 
@@ -184,12 +201,13 @@ function Library:Window(name)
                 btn.Visible = true
                 btn.ImageColor3 = Color3.new(1,1,1)
                 
-                -- Conexão única
+                -- Clique rápido (0.1s)
                 btn.MouseButton1Click:Connect(function()
-                    -- Tempo de resposta de 0.1s
-                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = CONFIG.Colors.Active}):Play()
-                    task.wait(0.1)
-                    TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = Color3.new(1,1,1)}):Play()
+                    local t = TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = CONFIG.Colors.Active})
+                    t:Play()
+                    t.Completed:Connect(function()
+                        TweenService:Create(btn, TweenInfo.new(0.1), {ImageColor3 = Color3.new(1,1,1)}):Play()
+                    end)
                     item.Callback()
                 end)
             else
